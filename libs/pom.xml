@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>at.jku.dke.bigkgolap</groupId>
+    <artifactId>lakehouse-big-kgolap</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>libs</artifactId>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>domain-model</module>
+    <module>engine-api</module>
+    <module>grpc-api</module>
+    <module>index-client</module>
+    <module>index-client-test-support</module>
+    <module>storage-client</module>
+    <module>messaging-client</module>
+    <module>messaging-client-test-support</module>
+    <module>cache-client</module>
+    <module>observability</module>
+    <module>graph-builders</module>
+    <module>graph-builders-spark</module>
+    <module>reasoning</module>
+  </modules>
+</project>

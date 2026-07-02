@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: graph-service-test
+  main:
+    web-application-type: none
+
+lakehouse:
+  grpc:
+    port: 0
+  graph:
+    chunk:
+      target-quads: 8
+  cache:
+    kind: none
+    redis:
+      host: localhost
+      port: 6379
+      ttl-minutes: 1
+    invalidation:
+      group-id-suffix: test
+  schemas:
+    root: ${java.io.tmpdir}/graph-service-test-schemas
+  storage:
+    kind: local
+    local:
+      root: ${java.io.tmpdir}/graph-service-test-storage
+    minio:
+      endpoint: http://localhost:9000
+      bucket: test
+      access-key: x
+      secret-key: x
+  cassandra:
+    host: 127.0.0.1
+    port: 9042
+    local-datacenter: datacenter1
+    keyspace: lakehouse_test
+  messaging:
+    bootstrap-servers: localhost:9092
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

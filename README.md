@@ -138,6 +138,7 @@ asserted content only (no native named-graph concept).
 | [docs/high-level-design.md](docs/high-level-design.md) | Goals, system context, component responsibilities, metric catalogue, sequence diagrams. Start here. |
 | [docs/deployment-docker.md](docs/deployment-docker.md) | Run the full stack locally with Docker Compose. |
 | [docs/deployment-kubernetes.md](docs/deployment-kubernetes.md) | Deploy to a Kubernetes cluster with the example manifests. |
+| [docs/building-from-source.md](docs/building-from-source.md) | Build the JARs, the web console, and (optionally) your own container images. |
 
 ---
 
@@ -186,19 +187,13 @@ Once the stack is running, the web console is at <http://localhost:3001> and Gra
 │   ├── query-service/        # KG query orchestrator (port 8081)
 │   ├── graph-service/        # gRPC base-graph reconstructor + cache (port 9090)
 │   └── inference-service/    # gRPC rule-based derivation, optional (port 9091)
-├── tools/                    # CLI tooling
-│   ├── benchmark/            # Latency benchmark CLI
-│   └── experiment-runner/    # YAML-driven parameter-sweep CLI
-├── deploy/
-│   ├── monitoring/           # Prometheus, Grafana, Tempo, Loki, Promtail configs
-│   └── k8s/                  # Kustomize base + dev / experiment / perf / scale overlays
+├── web/                      # Next.js web console (frontend)
 ├── config/schemas/           # Cube schemas (atm.yaml, fixm.yaml, meteo.yaml)
-├── bench/                    # Benchmark workload definitions
-├── experiments/              # Sample experiment YAMLs
-├── web/                      # Next.js operator console
-├── scripts/                  # Demo + build scripts
-├── papers/                   # Reference papers
-├── docs/                     # Design and operations documentation
+├── rulesets/                 # Reasoning rules and ontologies (TBox) per engine
+├── deploy/
+│   ├── docker/               # docker-compose.yaml + supporting config (local deployment)
+│   └── kubernetes/           # Example manifests, with an optional observability stack
+├── docs/                     # Architecture and deployment documentation
 └── pom.xml                   # Root Maven POM
 ```
 
@@ -215,8 +210,9 @@ The E1–E5 experiment suite is maintained in a separate repository (link to be 
 | `mvn package -DskipTests` | Fast build, skip tests |
 | `mvn test -pl libs/domain-model` | Run one module's unit tests |
 | `mvn spotless:apply` | Auto-fix formatting violations |
-| `mvn package -pl tools/benchmark -am -DskipTests` | Build the benchmark CLI JAR |
-| `mvn package -pl tools/experiment-runner -am -DskipTests` | Build the experiment-runner CLI JAR |
+| `npm ci && npm run build` (in `web/`) | Build the web console |
+
+Full build instructions — including how to build your own container images — are in [docs/building-from-source.md](docs/building-from-source.md).
 
 Conventions:
 

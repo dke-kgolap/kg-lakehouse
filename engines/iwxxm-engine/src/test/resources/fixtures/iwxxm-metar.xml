@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iwxxm:METAR xmlns:iwxxm="http://icao.int/iwxxm/3.0"
+             xmlns:gml="http://www.opengis.net/gml/3.2"
+             xmlns:aixm="http://www.aixm.aero/schema/5.1.1"
+             xmlns:xlink="http://www.w3.org/1999/xlink"
+             gml:id="metar-loww-2026050108"
+             reportStatus="NORMAL"
+             automatedStation="false">
+    <iwxxm:issueTime>
+        <gml:TimeInstant gml:id="ti-2026050108">
+            <gml:timePosition>2026-05-01T08:00:00Z</gml:timePosition>
+        </gml:TimeInstant>
+    </iwxxm:issueTime>
+    <iwxxm:aerodrome>
+        <aixm:AirportHeliport gml:id="ah-loww">
+            <aixm:timeSlice>
+                <aixm:AirportHeliportTimeSlice gml:id="ahts-loww">
+                    <aixm:designator>LOWW</aixm:designator>
+                    <aixm:name>VIENNA INTERNATIONAL</aixm:name>
+                </aixm:AirportHeliportTimeSlice>
+            </aixm:timeSlice>
+        </aixm:AirportHeliport>
+    </iwxxm:aerodrome>
+    <iwxxm:observation>
+        <iwxxm:MeteorologicalAerodromeObservation gml:id="obs-loww-2026050108">
+            <iwxxm:airTemperature>15.5</iwxxm:airTemperature>
+            <iwxxm:dewpointTemperature>9.2</iwxxm:dewpointTemperature>
+            <iwxxm:qnh>1018</iwxxm:qnh>
+        </iwxxm:MeteorologicalAerodromeObservation>
+    </iwxxm:observation>
+</iwxxm:METAR>

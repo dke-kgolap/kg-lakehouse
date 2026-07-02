@@ -1,0 +1,52 @@
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  application:
+    name: ingestion-service
+
+# Spring MVC runs only to host Actuator on the management port (8082).
+# This service has no public HTTP surface.
+server:
+  port: ${LAKEHOUSE_SERVER_PORT:0}
+
+lakehouse:
+  schemas:
+    root: ${LAKEHOUSE_SCHEMAS_ROOT:./config/schemas}
+  storage:
+    kind: ${LAKEHOUSE_STORAGE_KIND:local}
+    local:
+      root: ${LAKEHOUSE_STORAGE_LOCAL_ROOT:./data/storage}
+    minio:
+      endpoint: ${LAKEHOUSE_MINIO_ENDPOINT:http://localhost:9000}
+      bucket: ${LAKEHOUSE_MINIO_BUCKET:lakehouse}
+      access-key: ${LAKEHOUSE_MINIO_ACCESS_KEY:minioadmin}
+      secret-key: ${LAKEHOUSE_MINIO_SECRET_KEY:minioadmin}
+  cassandra:
+    host: ${LAKEHOUSE_CASSANDRA_HOST:127.0.0.1}
+    port: ${LAKEHOUSE_CASSANDRA_PORT:9042}
+    local-datacenter: ${LAKEHOUSE_CASSANDRA_DC:datacenter1}
+    keyspace: ${LAKEHOUSE_CASSANDRA_KEYSPACE:lakehouse}
+  messaging:
+    bootstrap-servers: ${LAKEHOUSE_KAFKA_BOOTSTRAP:localhost:9092}
+    consumer-group: ${LAKEHOUSE_INGESTION_GROUP:ingestion-service}
+
+management:
+  server:
+    port: ${LAKEHOUSE_MGMT_PORT:8082}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      service: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${LAKEHOUSE_TRACING_SAMPLE:1.0}
+  otlp:
+    tracing:
+      endpoint: ${LAKEHOUSE_OTLP_ENDPOINT:http://localhost:4318/v1/traces}

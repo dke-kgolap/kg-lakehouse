@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iwxxm:SIGMET xmlns:iwxxm="http://icao.int/iwxxm/3.0"
+              xmlns:gml="http://www.opengis.net/gml/3.2"
+              xmlns:aixm="http://www.aixm.aero/schema/5.1.1"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+              gml:id="sigmet-lovv-2026050112"
+              reportStatus="NORMAL"
+              isCancelReport="false">
+    <iwxxm:issueTime>
+        <gml:TimeInstant gml:id="ti-issue-2026050112">
+            <gml:timePosition>2026-05-01T12:00:00Z</gml:timePosition>
+        </gml:TimeInstant>
+    </iwxxm:issueTime>
+    <iwxxm:validPeriod>
+        <gml:TimePeriod gml:id="tp-valid-2026050112">
+            <gml:beginPosition>2026-05-01T12:00:00Z</gml:beginPosition>
+            <gml:endPosition>2026-05-01T16:00:00Z</gml:endPosition>
+        </gml:TimePeriod>
+    </iwxxm:validPeriod>
+    <iwxxm:affectedFIR>
+        <aixm:AirspaceTimeSlice gml:id="ats-lovv">
+            <aixm:designator>LOVV</aixm:designator>
+            <aixm:name>WIEN FIR</aixm:name>
+        </aixm:AirspaceTimeSlice>
+    </iwxxm:affectedFIR>
+    <iwxxm:phenomenon xlink:href="http://codes.wmo.int/49-2/SigWxPhenomena/EMBD_TS"/>
+    <iwxxm:analysis>
+        <iwxxm:SIGMETEvolvingConditionCollection gml:id="sec-2026050112">
+            <iwxxm:phenomenonGeometry>
+                <iwxxm:airspaceVolume>
+                    <aixm:AirspaceVolume gml:id="av-2026050112">
+                        <aixm:upperLimit uom="FL">350</aixm:upperLimit>
+                        <aixm:lowerLimit uom="FL">100</aixm:lowerLimit>
+                    </aixm:AirspaceVolume>
+                </iwxxm:airspaceVolume>
+            </iwxxm:phenomenonGeometry>
+        </iwxxm:SIGMETEvolvingConditionCollection>
+    </iwxxm:analysis>
+</iwxxm:SIGMET>

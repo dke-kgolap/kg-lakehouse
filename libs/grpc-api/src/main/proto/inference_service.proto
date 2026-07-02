@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package at.jku.dke.bigkgolap.grpc;
+
+option java_multiple_files = true;
+option java_package = "at.jku.dke.bigkgolap.grpc";
+
+// Derives knowledge for a single context from its base (asserted) graph. Stateless: the caller
+// ships the base graph (Option A), so the inference-service has no storage/index dependency.
+message InferRequest {
+    string schema_id = 1;
+    string context_id = 2;
+    string engine_id = 3;
+    repeated string base_quads = 4; // N-Quads/N-Triples lines of the context's base (-mod) graph
+}
+
+message InferResponse {
+    repeated string derived_triples = 1; // N-Triples lines of inferred triples (graph-agnostic)
+    bool from_cache = 2;                 // true on the final chunk if served from the derived cache
+}
+
+service InferenceService {
+    rpc Infer(InferRequest) returns (stream InferResponse);
+}

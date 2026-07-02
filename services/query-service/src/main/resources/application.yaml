@@ -1,0 +1,51 @@
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  application:
+    name: query-service
+
+server:
+  port: ${LAKEHOUSE_QUERY_HTTP_PORT:8081}
+
+lakehouse:
+  schemas:
+    root: ${LAKEHOUSE_SCHEMAS_ROOT:./config/schemas}
+  cassandra:
+    host: ${LAKEHOUSE_CASSANDRA_HOST:127.0.0.1}
+    port: ${LAKEHOUSE_CASSANDRA_PORT:9042}
+    local-datacenter: ${LAKEHOUSE_CASSANDRA_DC:datacenter1}
+    keyspace: ${LAKEHOUSE_CASSANDRA_KEYSPACE:lakehouse}
+  graph:
+    grpc:
+      host: ${LAKEHOUSE_GRAPH_HOST:localhost}
+      port: ${LAKEHOUSE_GRAPH_GRPC_PORT:9090}
+  inference:
+    grpc:
+      host: ${LAKEHOUSE_INFERENCE_HOST:localhost}
+      port: ${LAKEHOUSE_INFERENCE_GRPC_PORT:9091}
+  query:
+    fanout:
+      pool-size: ${LAKEHOUSE_QUERY_FANOUT_POOL:16}
+      batch-size: ${LAKEHOUSE_QUERY_FANOUT_BATCH:16}
+      timeout-seconds: ${LAKEHOUSE_QUERY_FANOUT_TIMEOUT_S:60}
+    graph:
+      base-uri: ${LAKEHOUSE_GRAPH_BASE_URI:urn:lakehouse:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      service: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${LAKEHOUSE_TRACING_SAMPLE:1.0}
+  otlp:
+    tracing:
+      endpoint: ${LAKEHOUSE_OTLP_ENDPOINT:http://localhost:4318/v1/traces}

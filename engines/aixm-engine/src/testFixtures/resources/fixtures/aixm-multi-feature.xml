@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Multi-feature AIXM 5.1 BasicMessage fixture.
+  Two features:
+    1. AircraftStand STAND-1 at LOWW (FIR LOVV), valid 2025-01-15 (single day).
+    2. ApronElement APRON-1 at LOWS (FIR LOVV), valid 2025-01-16..2025-01-17 (two days).
+  Topic values (AircraftStand, ApronElement) match atm.yaml's topic hierarchy data.
+  Location values (LOWW, LOWS) match atm.yaml's location hierarchy data.
+-->
+<message:AIXMBasicMessage
+    xmlns:message="http://www.aixm.aero/schema/5.1/message"
+    xmlns:gml="http://www.opengis.net/gml/3.2"
+    xmlns:aixm="http://www.aixm.aero/schema/5.1"
+    xmlns:event="http://www.aixm.aero/schema/5.1/event"
+    gml:id="MSG-1">
+
+  <message:hasMember>
+    <aixm:AircraftStand gml:id="STAND-1">
+      <aixm:availability>
+        <aixm:AircraftStandAvailability gml:id="AVAIL-1">
+          <aixm:operationalStatus>NORMAL</aixm:operationalStatus>
+          <gml:validTime>
+            <gml:TimePeriod gml:id="TP-1">
+              <gml:beginPosition>2025-01-15T00:00:00Z</gml:beginPosition>
+              <gml:endPosition>2025-01-15T23:59:59Z</gml:endPosition>
+            </gml:TimePeriod>
+          </gml:validTime>
+          <event:location>LOWW</event:location>
+          <event:affectedFIR>LOVV</event:affectedFIR>
+        </aixm:AircraftStandAvailability>
+      </aixm:availability>
+    </aixm:AircraftStand>
+  </message:hasMember>
+
+  <message:hasMember>
+    <aixm:ApronElement gml:id="APRON-1">
+      <aixm:availability>
+        <aixm:AircraftStandAvailability gml:id="AVAIL-2">
+          <aixm:operationalStatus>OPERATIONAL</aixm:operationalStatus>
+          <gml:validTime>
+            <gml:TimePeriod gml:id="TP-2">
+              <gml:beginPosition>2025-01-16T00:00:00Z</gml:beginPosition>
+              <gml:endPosition>2025-01-17T23:59:59Z</gml:endPosition>
+            </gml:TimePeriod>
+          </gml:validTime>
+          <event:location>LOWS</event:location>
+          <event:affectedFIR>LOVV</event:affectedFIR>
+        </aixm:AircraftStandAvailability>
+      </aixm:availability>
+    </aixm:ApronElement>
+  </message:hasMember>
+
+</message:AIXMBasicMessage>

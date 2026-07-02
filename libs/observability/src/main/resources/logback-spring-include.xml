@@ -1,0 +1,27 @@
+<included>
+    <springProperty scope="context" name="serviceName" source="spring.application.name" defaultValue="unknown"/>
+
+    <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <fieldNames>
+                <message>message</message>
+                <thread>thread</thread>
+                <level>level</level>
+                <logger>logger</logger>
+            </fieldNames>
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>spanId</includeMdcKeyName>
+            <customFields>{"service":"${serviceName}"}</customFields>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC_JSON" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="JSON_STDOUT"/>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="ASYNC_JSON"/>
+    </root>
+</included>

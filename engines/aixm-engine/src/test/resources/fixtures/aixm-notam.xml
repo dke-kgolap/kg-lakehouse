@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Single-feature AIXM 5.1 BasicMessage with a NOTAM (event:Event).
+  event:Event uses the AIXM 5.1/event extension namespace.
+  validTime: 2025-01-05 (single day).
+  location: LOWS, affectedFIR: LOVV — both match atm.yaml hierarchy data.
+  NOTAM series A, number 0042, covers runway closure.
+-->
+<message:AIXMBasicMessage
+    xmlns:message="http://www.aixm.aero/schema/5.1/message"
+    xmlns:gml="http://www.opengis.net/gml/3.2"
+    xmlns:aixm="http://www.aixm.aero/schema/5.1"
+    xmlns:event="http://www.aixm.aero/schema/5.1/event"
+    gml:id="MSG-NOTAM-1">
+
+  <message:hasMember>
+    <event:Event gml:id="NOTAM-001">
+      <gml:validTime>
+        <gml:TimePeriod gml:id="TP-NOTAM-001">
+          <gml:beginPosition>2025-01-05T00:00:00Z</gml:beginPosition>
+          <gml:endPosition>2025-01-05T23:59:59Z</gml:endPosition>
+        </gml:TimePeriod>
+      </gml:validTime>
+      <event:interpretation>BASELINE</event:interpretation>
+      <event:extension>
+        <event:EventExtension gml:id="EXT-NOTAM-001">
+          <event:annotation>
+            <event:NOTAM gml:id="NOTAMPROPS-001">
+              <event:series>A</event:series>
+              <event:number>0042</event:number>
+              <event:year>2025</event:year>
+              <event:location>LOWS</event:location>
+              <event:affectedFIR>LOVV</event:affectedFIR>
+              <event:effectiveStart>2025-01-05T06:00:00Z</event:effectiveStart>
+              <event:effectiveEnd>2025-01-05T18:00:00Z</event:effectiveEnd>
+              <event:text>RWY 15/33 CLSD DUE MAINT 0600-1800</event:text>
+            </event:NOTAM>
+          </event:annotation>
+        </event:EventExtension>
+      </event:extension>
+    </event:Event>
+  </message:hasMember>
+
+</message:AIXMBasicMessage>

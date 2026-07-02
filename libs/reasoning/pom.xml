@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>at.jku.dke.bigkgolap</groupId>
+    <artifactId>libs</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>reasoning</artifactId>
+
+  <dependencies>
+    <dependency>
+      <groupId>at.jku.dke.bigkgolap</groupId>
+      <artifactId>domain-model</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>at.jku.dke.bigkgolap</groupId>
+      <artifactId>engine-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jena</groupId>
+      <artifactId>jena-arq</artifactId>
+    </dependency>
+  </dependencies>
+</project>

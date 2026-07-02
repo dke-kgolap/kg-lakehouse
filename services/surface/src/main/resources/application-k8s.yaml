@@ -1,0 +1,17 @@
+# K8s readiness composition. The contributor names match @Bean
+# definitions in K8sHealthIndicators.kt (profile-gated to "k8s") so this
+# `include:` list only resolves under the k8s profile.
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,cassandra
+
+# K8s profile override: credentials must come from lakehouse-secrets Secret.
+# No Spring EL default — pod fails to start if Secret is absent rather than
+# silently using the admin:admin fallback in application.yaml.
+lakehouse:
+  auth:
+    username: ${LAKEHOUSE_USER}
+    password: ${LAKEHOUSE_PASSWORD}

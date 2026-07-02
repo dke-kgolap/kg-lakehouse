@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package at.jku.dke.bigkgolap.grpc;
+
+option java_multiple_files = true;
+option java_package = "at.jku.dke.bigkgolap.grpc";
+
+message GraphQueryRequest {
+    string request_id = 1;
+    string schema_id = 2;
+    string context_id = 3;
+    repeated string graph_uris = 4;
+    string representation = 5;
+}
+
+message GraphQueryResponse {
+    repeated string quads    = 1;   // RDF: N-Quads
+    repeated string elements = 2;   // LPG: GraphSON v3 elements
+    repeated string rows     = 3;   // GraphFrame: JSON rows
+    bool from_cache          = 4;   // true on a context's final chunk if served from Redis
+    string context_id        = 5;   // which context this chunk belongs to ("" on legacy QueryGraph)
+}
+
+message ContextQuery {
+    string context_id = 1;
+    repeated string graph_uris = 2;
+}
+
+message GraphQueryBatchRequest {
+    string request_id = 1;
+    string schema_id = 2;
+    repeated ContextQuery contexts = 3;
+    string representation = 4;
+}
+
+message GraphCacheRequest {
+    string schema_id = 1;
+    repeated string context_ids = 2;
+}
+
+message GraphCacheResponse {
+    int32 cleared_count = 1;
+}
+
+service GraphQueryService {
+    rpc QueryGraph(GraphQueryRequest) returns (stream GraphQueryResponse);
+    rpc QueryGraphBatch(GraphQueryBatchRequest) returns (stream GraphQueryResponse);
+    rpc ClearCache(GraphCacheRequest) returns (GraphCacheResponse);
+}

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iwxxm:TAF xmlns:iwxxm="http://icao.int/iwxxm/3.0"
+           xmlns:gml="http://www.opengis.net/gml/3.2"
+           xmlns:aixm="http://www.aixm.aero/schema/5.1.1"
+           xmlns:xlink="http://www.w3.org/1999/xlink"
+           gml:id="taf-loww-2026050118"
+           reportStatus="NORMAL"
+           isCancelReport="false">
+    <iwxxm:issueTime>
+        <gml:TimeInstant gml:id="ti-issue-2026050118">
+            <gml:timePosition>2026-05-01T18:00:00Z</gml:timePosition>
+        </gml:TimeInstant>
+    </iwxxm:issueTime>
+    <iwxxm:validPeriod>
+        <gml:TimePeriod gml:id="tp-valid-2026050118">
+            <gml:beginPosition>2026-05-01T18:00:00Z</gml:beginPosition>
+            <gml:endPosition>2026-05-03T00:00:00Z</gml:endPosition>
+        </gml:TimePeriod>
+    </iwxxm:validPeriod>
+    <iwxxm:aerodrome>
+        <aixm:AirportHeliport gml:id="ah-loww">
+            <aixm:timeSlice>
+                <aixm:AirportHeliportTimeSlice gml:id="ahts-loww-taf">
+                    <aixm:designator>LOWW</aixm:designator>
+                </aixm:AirportHeliportTimeSlice>
+            </aixm:timeSlice>
+        </aixm:AirportHeliport>
+    </iwxxm:aerodrome>
+    <iwxxm:prevailingForecast>
+        <iwxxm:MeteorologicalAerodromeForecast gml:id="fc-loww-base">
+            <iwxxm:windSpeed uom="[kn_i]">10</iwxxm:windSpeed>
+            <iwxxm:cloudBase uom="[ft_i]">3000</iwxxm:cloudBase>
+        </iwxxm:MeteorologicalAerodromeForecast>
+    </iwxxm:prevailingForecast>
+</iwxxm:TAF>

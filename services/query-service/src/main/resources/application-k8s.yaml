@@ -1,0 +1,9 @@
+# K8s readiness composition. The contributor names match @Bean
+# definitions in K8sHealthIndicators.kt (profile-gated to "k8s") so this
+# `include:` list only resolves under the k8s profile.
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,cassandra,graphServiceGrpc

@@ -1,0 +1,93 @@
+# FIXM ATM cube — RDFS / OWL-RL forward-chaining rules
+# Variant: +domain_range (adds rdfs:domain and rdfs:range propagation)
+#
+# Target schema: lakehouse ATM cube (FIXM)
+# Dimensions:    time, location, topic
+#
+# Eight rules covering the OWL 2 RL fragment used by the lakehouse:
+#   (1) subClassOf            — instance-level type generalization
+#   (2) subPropertyOf         — property generalization
+#   (3) propertyChainAxiom    — binary chains (?u ∘ ?v ⊑ ?w)
+#   (4) intersectionOf        — binary class conjunctions
+#   (5) someValuesFrom        — existential restrictions under subClassOf
+#   (6) hasValue              — value-typed individuals under subClassOf
+#   (7) rdfs:domain           — type inference from property domain
+#   (8) rdfs:range            — type inference from property range
+
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix owl:  <http://www.w3.org/2002/07/owl#>.
+
+# (1) subClassOf
+[subClassOf:
+    (?y rdfs:subClassOf ?z)
+    (?x rdf:type ?y)
+    ->
+    (?x rdf:type ?z)]
+
+# (2) subPropertyOf
+[subPropertyOf:
+    (?v rdfs:subPropertyOf ?w)
+    (?x ?v ?x1)
+    ->
+    (?x ?w ?x1)]
+
+# (3) propertyChainAxiom (length 2):  ?w ≡ ?u ∘ ?v
+[propertyChainAxiom2:
+    (?w owl:propertyChainAxiom ?l)
+    (?l rdf:first ?u)
+    (?l rdf:rest ?l2)
+    (?l2 rdf:first ?v)
+    (?l2 rdf:rest rdf:nil)
+    (?x ?u ?y)
+    (?y ?v ?z)
+    ->
+    (?x ?w ?z)]
+
+# (4) intersectionOf (binary):  ?z1 ≡ ?y1 ⊓ ?y2 ⊑ ?z
+[intersectionOf2:
+    (?z1 owl:intersectionOf ?l)
+    (?l rdf:first ?y1)
+    (?l rdf:rest ?l2)
+    (?l2 rdf:first ?y2)
+    (?l2 rdf:rest rdf:nil)
+    (?z1 rdfs:subClassOf ?z)
+    notEqual(?y1, ?y2)
+    (?x rdf:type ?y1)
+    (?x rdf:type ?y2)
+    ->
+    (?x rdf:type ?z)]
+
+# (5) someValuesFrom under subClassOf:  ∃?v.?y ⊑ ?z
+[someValuesFrom:
+    (?z1 owl:someValuesFrom ?y)
+    (?z1 owl:onProperty ?v)
+    (?z1 rdfs:subClassOf ?z)
+    (?x ?v ?x1)
+    (?x1 rdf:type ?y)
+    notEqual(?v, rdf:type)
+    ->
+    (?x rdf:type ?z)]
+
+# (6) hasValue under subClassOf:  ?y ⊑ {∃?r.{?x1}}
+[hasValue:
+    (?z owl:hasValue ?x1)
+    (?z owl:onProperty ?r)
+    (?y rdfs:subClassOf ?z)
+    (?x rdf:type ?y)
+    ->
+    (?x ?r ?x1)]
+
+# (7) rdfs:domain
+[rdfsDomain:
+    (?p rdfs:domain ?d)
+    (?s ?p ?o)
+    ->
+    (?s rdf:type ?d)]
+
+# (8) rdfs:range
+[rdfsRange:
+    (?p rdfs:range ?r)
+    (?s ?p ?o)
+    ->
+    (?o rdf:type ?r)]

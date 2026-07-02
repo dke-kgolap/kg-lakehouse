@@ -1,0 +1,27 @@
+# ── Java / Maven build output ─────────────────────────────────
+target/
+*.class
+dependency-reduced-pom.xml
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+
+# ── Node / web console ────────────────────────────────────────
+# (web/ has its own detailed .gitignore; these cover the tree broadly)
+node_modules/
+.next/
+out/
+
+# ── Local, non-committed configuration ────────────────────────
+# Real Kubernetes secret rendered from deploy/kubernetes/01-secrets.example.yaml
+secret.yaml
+.env
+.env.local
+.env*.local
+
+# ── OS / editor ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.iml
+.idea/
+.vscode/

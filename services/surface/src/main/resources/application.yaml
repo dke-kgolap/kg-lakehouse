@@ -1,0 +1,59 @@
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  application:
+    name: surface
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:50MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:50MB}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+lakehouse:
+  auth:
+    username: ${LAKEHOUSE_USER:admin}
+    password: ${LAKEHOUSE_PASSWORD:admin}
+  schemas:
+    root: ${LAKEHOUSE_SCHEMAS_ROOT:./config/schemas}
+  storage:
+    kind: ${LAKEHOUSE_STORAGE_KIND:local}
+    local:
+      root: ${LAKEHOUSE_STORAGE_LOCAL_ROOT:./data/storage}
+    minio:
+      endpoint: ${LAKEHOUSE_MINIO_ENDPOINT:http://localhost:9000}
+      bucket: ${LAKEHOUSE_MINIO_BUCKET:lakehouse}
+      access-key: ${LAKEHOUSE_MINIO_ACCESS_KEY:minioadmin}
+      secret-key: ${LAKEHOUSE_MINIO_SECRET_KEY:minioadmin}
+  cassandra:
+    host: ${LAKEHOUSE_CASSANDRA_HOST:127.0.0.1}
+    port: ${LAKEHOUSE_CASSANDRA_PORT:9042}
+    local-datacenter: ${LAKEHOUSE_CASSANDRA_DC:datacenter1}
+    keyspace: ${LAKEHOUSE_CASSANDRA_KEYSPACE:lakehouse}
+  messaging:
+    bootstrap-servers: ${LAKEHOUSE_KAFKA_BOOTSTRAP:localhost:9092}
+  services:
+    query:
+      host: ${LAKEHOUSE_QUERY_HOST:localhost}
+      http-port: ${LAKEHOUSE_QUERY_HTTP_PORT:8081}
+      read-timeout-seconds: ${LAKEHOUSE_QUERY_READ_TIMEOUT_S:120}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      service: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${LAKEHOUSE_TRACING_SAMPLE:1.0}
+  otlp:
+    tracing:
+      endpoint: ${LAKEHOUSE_OTLP_ENDPOINT:http://localhost:4318/v1/traces}

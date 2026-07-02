@@ -1,0 +1,39 @@
+# Minimal Jena rule set for GenericRuleInferenceEngineTest. Covers four of the rule patterns
+# from rulesets/aixm/aixm-ruleset-domain_range.rules:
+#   - subClassOf
+#   - rdfs:domain
+#   - rdfs:range
+#   - owl:propertyChainAxiom (length 2)
+
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix owl:  <http://www.w3.org/2002/07/owl#>.
+
+[subClassOf:
+    (?y rdfs:subClassOf ?z)
+    (?x rdf:type ?y)
+    ->
+    (?x rdf:type ?z)]
+
+[rdfsDomain:
+    (?p rdfs:domain ?d)
+    (?s ?p ?o)
+    ->
+    (?s rdf:type ?d)]
+
+[rdfsRange:
+    (?p rdfs:range ?r)
+    (?s ?p ?o)
+    ->
+    (?o rdf:type ?r)]
+
+[propertyChainAxiom2:
+    (?w owl:propertyChainAxiom ?l)
+    (?l rdf:first ?u)
+    (?l rdf:rest ?l2)
+    (?l2 rdf:first ?v)
+    (?l2 rdf:rest rdf:nil)
+    (?x ?u ?y)
+    (?y ?v ?z)
+    ->
+    (?x ?w ?z)]

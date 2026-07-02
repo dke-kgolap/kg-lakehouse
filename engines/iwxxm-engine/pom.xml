@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>at.jku.dke.bigkgolap</groupId>
+    <artifactId>engines</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>iwxxm-engine</artifactId>
+
+  <build>
+    <resources>
+      <!-- Engine's own classpath resources (Engine ServiceLoader file, etc.). -->
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <!-- Bundle the canonical IWXXM ruleset folder into the engine jar so that
+           IwxxmEngine.ontologyResource() and IwxxmEngine.rulesResource() resolve
+           via the engine's classloader. Limited to *.ttl / *.rules so the
+           README.md does not leak into the artifact. -->
+      <resource>
+        <directory>${project.basedir}/../../rulesets/iwxxm</directory>
+        <includes>
+          <include>*.ttl</include>
+          <include>*.rules</include>
+        </includes>
+      </resource>
+    </resources>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>at.jku.dke.bigkgolap</groupId>
+      <artifactId>domain-model</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>at.jku.dke.bigkgolap</groupId>
+      <artifactId>engine-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>at.jku.dke.bigkgolap</groupId>
+      <artifactId>graph-builders</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jena</groupId>
+      <artifactId>jena-arq</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

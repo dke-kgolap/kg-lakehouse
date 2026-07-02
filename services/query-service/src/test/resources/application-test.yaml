@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: query-service-test
+
+server:
+  port: 0
+
+lakehouse:
+  schemas:
+    root: ${java.io.tmpdir}/query-service-test-schemas
+  cassandra:
+    host: 127.0.0.1
+    port: 9042
+    local-datacenter: datacenter1
+    keyspace: lakehouse_test
+  graph:
+    grpc:
+      host: localhost
+      port: 9090
+  query:
+    fanout:
+      pool-size: 4
+      timeout-seconds: 5
+    graph:
+      base-uri: urn:lakehouse:test:
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

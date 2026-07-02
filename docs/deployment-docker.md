@@ -77,8 +77,7 @@ appear in Grafana under the Tempo data source, and container logs under Loki.
 The stack starts empty. To populate it, upload aeronautical files through the
 gateway and then query the reconstructed knowledge graph. See the repository
 [README](../README.md) for the request formats, and the
-[high-level design](high-level-design.md) for the query model. Sample datasets
-can be produced with the accompanying data generator.
+[high-level design](high-level-design.md) for the query model.
 
 ## Configuration
 

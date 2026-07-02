@@ -1,0 +1,50 @@
+# IWXXM TBox — supplementary domain axioms for the lakehouse reasoner
+#
+# Pairs with: iwxxm-ruleset-domain_range.rules (so rules 1, 7, 8 fire).
+# Base URI:   matches what iwxxm-engine emits (IwxxmConstants.BASE_URI).
+#
+# Note on namespaces: IwxxmRdfWriter unifies the iwxxm: and aixm: tags it
+# encounters in a message under the single IWXXM base URI, so AIXM features
+# embedded in METAR / TAF / SIGMET messages (e.g. the aerodrome the report
+# refers to) appear as iwxxm:AirportHeliport, iwxxm:Airspace, etc. The TBox
+# below declares those embedded-AIXM classes under the IWXXM namespace.
+#
+# Out of scope on purpose: data cardinality, datatype constraints, WMO Codes
+# Registry codelists (those are SKOS, not OWL-RL), and anything else the
+# OWL 2 RL fragment does not handle.
+
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix iwxxm: <http://example.org/bigkgolap/atm/iwxxm#> .
+
+#-------------------------------------------------------------------------
+# 1. Embedded-AIXM feature classes  (exercises Rule 1: subClassOf)
+#
+# Declaring these gives the reasoner a target for the rdfs:range axioms
+# below; without the declaration, range-derived types would still be
+# produced but downstream queries would have no class to roll up to.
+#-------------------------------------------------------------------------
+
+iwxxm:AirportHeliport a rdfs:Class .
+iwxxm:Airspace        a rdfs:Class .
+
+#-------------------------------------------------------------------------
+# 2. Property typings  (exercises Rules 7 & 8: domain / range)
+#
+# Property names match what IwxxmRdfWriter emits (the local part of
+# iwxxm:* / aixm:* tags, stripped of the namespace prefix).
+#-------------------------------------------------------------------------
+
+iwxxm:aerodrome
+    a rdf:Property ;
+    rdfs:range iwxxm:AirportHeliport .
+
+iwxxm:affectedFIR
+    a rdf:Property ;
+    rdfs:domain iwxxm:SIGMET ;
+    rdfs:range  iwxxm:Airspace .
+
+iwxxm:issuingAirTrafficServicesRegion
+    a rdf:Property ;
+    rdfs:range iwxxm:Airspace .

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Single FIXM 4.3 Flight document.
+  departure: LOWW, estimatedOffBlockTime: 2025-01-01T06:00:00Z
+  arrival: EDDF, actualTimeOfArrival: 2025-01-01T08:30:00Z
+  Location and topic hierarchy values match fixm.yaml.
+-->
+<fx:Flight
+    xmlns:fx="http://www.fixm.aero/flight/4.3"
+    xmlns:fb="http://www.fixm.aero/base/4.3"
+    xmlns:gml="http://www.opengis.net/gml/3.2"
+    gml:id="atm-gen.flight.a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+
+  <fx:departure>
+    <fx:departureAerodrome>
+      <fb:locationIndicator>LOWW</fb:locationIndicator>
+    </fx:departureAerodrome>
+    <fx:estimatedOffBlockTime>2025-01-01T06:00:00Z</fx:estimatedOffBlockTime>
+  </fx:departure>
+
+  <fx:arrival>
+    <fx:destinationAerodrome>
+      <fb:locationIndicator>EDDF</fb:locationIndicator>
+    </fx:destinationAerodrome>
+    <fx:actualTimeOfArrival>
+      <fx:time>2025-01-01T08:30:00Z</fx:time>
+    </fx:actualTimeOfArrival>
+  </fx:arrival>
+
+</fx:Flight>

@@ -1,0 +1,70 @@
+# FIXM TBox — supplementary domain axioms for the lakehouse reasoner
+#
+# Pairs with: fixm-ruleset-domain_range.rules (so rules 1, 3, 7, 8 fire).
+# Base URI:   matches what fixm-engine emits (FixmConstants.BASE_URI), so the
+#             axioms here apply directly to the asserted instance triples
+#             produced by FixmRdfWriter.
+#
+# Out of scope on purpose: data cardinality, datatype constraints, code lists,
+# and anything else the OWL 2 RL fragment does not handle.
+
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix fixm: <http://example.org/bigkgolap/atm/fixm#> .
+
+#-------------------------------------------------------------------------
+# 1. Trajectory hierarchy  (exercises Rule 1: subClassOf)
+#
+# Extends the cube-derived `Flights > Trajectory > RouteTrajectoryElement`
+# taxonomy with the explicit Trajectory parent class so a query asking
+# "which features are trajectory elements?" picks up RouteTrajectoryElement
+# via subClassOf reasoning.
+#-------------------------------------------------------------------------
+
+fixm:Trajectory             a rdfs:Class .
+fixm:RouteTrajectoryElement a rdfs:Class ; rdfs:subClassOf fixm:Trajectory .
+
+#-------------------------------------------------------------------------
+# 2. Flight property typings  (exercises Rules 7 & 8: domain / range)
+#
+# Property names match what FixmRdfWriter emits (the local part of fx:* /
+# fb:* tags, stripped of the namespace prefix).
+#-------------------------------------------------------------------------
+
+fixm:departureAerodrome
+    a rdf:Property ;
+    rdfs:range fixm:Aerodrome .
+
+fixm:arrivalAerodrome
+    a rdf:Property ;
+    rdfs:range fixm:Aerodrome .
+
+fixm:routeTrajectoryElement
+    a rdf:Property ;
+    rdfs:domain fixm:Flight ;
+    rdfs:range  fixm:RouteTrajectoryElement .
+
+#-------------------------------------------------------------------------
+# 3. Property chains: a Flight's departure / arrival airport  (Rule 3)
+#
+#     Flight --departure--> FlightDeparture --departureAerodrome--> Aerodrome
+#
+# entails
+#
+#     Flight --departsFrom--> Aerodrome
+#
+# Mirror for arrival.
+#-------------------------------------------------------------------------
+
+fixm:departsFrom
+    a rdf:Property ;
+    rdfs:domain fixm:Flight ;
+    rdfs:range  fixm:Aerodrome ;
+    owl:propertyChainAxiom ( fixm:departure fixm:departureAerodrome ) .
+
+fixm:arrivesAt
+    a rdf:Property ;
+    rdfs:domain fixm:Flight ;
+    rdfs:range  fixm:Aerodrome ;
+    owl:propertyChainAxiom ( fixm:arrival fixm:arrivalAerodrome ) .
