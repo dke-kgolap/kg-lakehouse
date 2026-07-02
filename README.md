@@ -242,4 +242,4 @@ If you use this work, please cite:
 
 > ...
 > 
-The repository is distributed without a license file; treat it as research code shared in good faith.
+This repository is released under the BSD 3-Clause Licence; see the [LICENSE](LICENSE) file for the full text.
