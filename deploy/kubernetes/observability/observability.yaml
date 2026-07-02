@@ -1,0 +1,739 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: prometheus
+  namespace: lakehouse
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: promtail
+  namespace: lakehouse
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: lakehouse-prometheus
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  - services
+  - endpoints
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: lakehouse-promtail
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  - services
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: lakehouse-prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: lakehouse-prometheus
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: lakehouse
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: lakehouse-promtail
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: lakehouse-promtail
+subjects:
+- kind: ServiceAccount
+  name: promtail
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  lakehouse.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.lakehouse.svc.cluster.local:9090
+        isDefault: true
+        editable: false
+      - name: Tempo
+        uid: tempo
+        type: tempo
+        access: proxy
+        url: http://tempo.lakehouse.svc.cluster.local:3200
+        editable: false
+        jsonData:
+          tracesToLogsV2:
+            datasourceUid: loki
+            spanStartTimeShift: -5m
+            spanEndTimeShift: 5m
+            tags:
+              - { key: service.name, value: service }
+            filterByTraceID: true
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://loki.lakehouse.svc.cluster.local:3100
+        editable: false
+        jsonData:
+          derivedFields:
+            - name: TraceID
+              datasourceUid: tempo
+              matcherRegex: "\"traceId\":\"(\\w+)\""
+              url: "$${__value.raw}"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: grafana-datasources
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  loki.yaml: |
+    auth_enabled: false
+
+    server:
+      http_listen_port: 3100
+
+    common:
+      path_prefix: /loki
+      storage:
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+
+    schema_config:
+      configs:
+        - from: 2025-01-01
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+
+    ruler:
+      storage:
+        type: local
+        local:
+          directory: /loki/rules
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: loki-config
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      # Pod-level discovery: any pod with prometheus.io/scrape=true is scraped
+      # at the port + path declared in its annotations.
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [lakehouse]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: replace
+            target_label: service
+
+      # Server-side Redis metrics from the redis-exporter Deployment.
+      - job_name: redis
+        static_configs:
+          - targets: ["redis-exporter.lakehouse.svc.cluster.local:9121"]
+
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:9090"]
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: prometheus-config
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /var/lib/promtail/positions.yaml
+
+    clients:
+      - url: http://loki.lakehouse.svc.cluster.local:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [lakehouse]
+        pipeline_stages:
+          - cri: {}
+          - json:
+              expressions:
+                traceId: traceId
+                spanId: spanId
+                level: level
+          - labels:
+              traceId:
+              spanId:
+              level:
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_tier]
+            action: keep
+            regex: "application"
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: service
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            replacement: /var/log/pods/*$1/$2/*.log
+            separator: /
+            target_label: __path__
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: promtail-config
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+
+    ingester:
+      max_block_duration: 5m
+
+    compactor:
+      compaction:
+        block_retention: 1h
+
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /var/tempo/traces
+        wal:
+          path: /var/tempo/wal
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: tempo-config
+  namespace: lakehouse
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: grafana
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: grafana
+  namespace: lakehouse
+spec:
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+  selector:
+    app: grafana
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: loki
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: loki
+  namespace: lakehouse
+spec:
+  ports:
+  - name: http
+    port: 3100
+    targetPort: http
+  selector:
+    app: loki
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: prometheus
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: prometheus
+  namespace: lakehouse
+spec:
+  ports:
+  - name: web
+    port: 9090
+    targetPort: web
+  selector:
+    app: prometheus
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: redis-exporter
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: redis-exporter
+  namespace: lakehouse
+spec:
+  ports:
+  - name: http
+    port: 9121
+    targetPort: http
+  selector:
+    app: redis-exporter
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: tempo
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: tempo
+  namespace: lakehouse
+spec:
+  ports:
+  - name: http
+    port: 3200
+    targetPort: http
+  - name: otlp-grpc
+    port: 4317
+    targetPort: otlp
+  selector:
+    app: tempo
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: grafana
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: grafana
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+        tier: observability
+    spec:
+      containers:
+      - env:
+        - name: GF_SECURITY_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              key: GRAFANA_ADMIN_USER
+              name: lakehouse-secrets
+              optional: false
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: GRAFANA_ADMIN_PASSWORD
+              name: lakehouse-secrets
+              optional: false
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: 'true'
+        image: grafana/grafana:10.4.1
+        imagePullPolicy: IfNotPresent
+        name: grafana
+        ports:
+        - containerPort: 3000
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /etc/grafana/provisioning/datasources
+          name: datasources
+      volumes:
+      - configMap:
+          name: grafana-datasources
+        name: datasources
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: loki
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: loki
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+        tier: observability
+    spec:
+      containers:
+      - args:
+        - -config.file=/etc/loki/loki.yaml
+        image: grafana/loki:2.9.4
+        imagePullPolicy: IfNotPresent
+        name: loki
+        ports:
+        - containerPort: 3100
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /etc/loki
+          name: config
+        - mountPath: /loki
+          name: data
+      volumes:
+      - configMap:
+          name: loki-config
+        name: config
+      - emptyDir: {}
+        name: data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: prometheus
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: prometheus
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        tier: observability
+    spec:
+      containers:
+      - args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/prometheus
+        image: prom/prometheus:v2.51.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: web
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        name: prometheus
+        ports:
+        - containerPort: 9090
+          name: web
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: web
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /etc/prometheus
+          name: config
+        - mountPath: /prometheus
+          name: data
+      serviceAccountName: prometheus
+      volumes:
+      - configMap:
+          name: prometheus-config
+        name: config
+      - emptyDir: {}
+        name: data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: redis-exporter
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: redis-exporter
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-exporter
+  template:
+    metadata:
+      labels:
+        app: redis-exporter
+        tier: observability
+    spec:
+      containers:
+      - env:
+        - name: REDIS_ADDR
+          value: redis://redis.lakehouse.svc.cluster.local:6379
+        image: oliver006/redis_exporter:v1.58.0
+        imagePullPolicy: IfNotPresent
+        name: redis-exporter
+        ports:
+        - containerPort: 9121
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: tempo
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: tempo
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+        tier: observability
+    spec:
+      containers:
+      - args:
+        - -config.file=/etc/tempo/tempo.yaml
+        image: grafana/tempo:2.4.1
+        imagePullPolicy: IfNotPresent
+        name: tempo
+        ports:
+        - containerPort: 3200
+          name: http
+        - containerPort: 4317
+          name: otlp
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /etc/tempo
+          name: config
+        - mountPath: /var/tempo
+          name: data
+      volumes:
+      - configMap:
+          name: tempo-config
+        name: config
+      - emptyDir: {}
+        name: data
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: promtail
+    app.kubernetes.io/part-of: lakehouse
+    tier: observability
+  name: promtail
+  namespace: lakehouse
+spec:
+  selector:
+    matchLabels:
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+        tier: observability
+    spec:
+      containers:
+      - args:
+        - -config.file=/etc/promtail/promtail.yaml
+        env:
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        image: grafana/promtail:2.9.4
+        imagePullPolicy: IfNotPresent
+        name: promtail
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /etc/promtail
+          name: config
+        - mountPath: /var/lib/promtail
+          name: positions
+        - mountPath: /var/log/pods
+          name: pods-logs
+          readOnly: true
+        - mountPath: /var/log/containers
+          name: containers-logs
+          readOnly: true
+      serviceAccountName: promtail
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - configMap:
+          name: promtail-config
+        name: config
+      - emptyDir: {}
+        name: positions
+      - hostPath:
+          path: /var/log/pods
+        name: pods-logs
+      - hostPath:
+          path: /var/log/containers
+        name: containers-logs

@@ -1,0 +1,593 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: graph-service
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: graph-service
+  namespace: lakehouse
+spec:
+  clusterIP: None
+  ports:
+  - name: mgmt
+    port: 8083
+    targetPort: mgmt
+  - name: grpc
+    port: 9090
+    targetPort: grpc
+  selector:
+    app: graph-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: inference-service
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: inference-service
+  namespace: lakehouse
+spec:
+  clusterIP: None
+  ports:
+  - name: mgmt
+    port: 8084
+    targetPort: mgmt
+  - name: grpc
+    port: 9091
+    targetPort: grpc
+  selector:
+    app: inference-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ingestion-service
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: ingestion-service
+  namespace: lakehouse
+spec:
+  ports:
+  - name: mgmt
+    port: 8082
+    targetPort: mgmt
+  selector:
+    app: ingestion-service
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: query-service
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: query-service
+  namespace: lakehouse
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8081
+    targetPort: http
+  selector:
+    app: query-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: surface
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: surface
+  namespace: lakehouse
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+  selector:
+    app: surface
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: graph-service
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: graph-service
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graph-service
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: '8083'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: graph-service
+        tier: application
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: lakehouse-app-config
+        - configMapRef:
+            name: graph-service-config
+        - secretRef:
+            name: lakehouse-secrets
+            optional: false
+        image: basharahmad/lakehouse-graph-service:1.0.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health/liveness
+            port: mgmt
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: graph-service
+        ports:
+        - containerPort: 8083
+          name: mgmt
+        - containerPort: 9090
+          name: grpc
+        readinessProbe:
+          failureThreshold: 12
+          httpGet:
+            path: /actuator/health/readiness
+            port: mgmt
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 1500m
+            memory: 1536Mi
+          requests:
+            cpu: 300m
+            memory: 768Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /app/config/schemas
+          name: schemas
+          readOnly: true
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      volumes:
+      - configMap:
+          name: lakehouse-schemas
+        name: schemas
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: inference-service
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: inference-service
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inference-service
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: '8084'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: inference-service
+        tier: application
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: lakehouse-app-config
+        - configMapRef:
+            name: inference-service-config
+        - secretRef:
+            name: lakehouse-secrets
+            optional: false
+        image: basharahmad/lakehouse-inference-service:1.0.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health/liveness
+            port: mgmt
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: inference-service
+        ports:
+        - containerPort: 8084
+          name: mgmt
+        - containerPort: 9091
+          name: grpc
+        readinessProbe:
+          failureThreshold: 12
+          httpGet:
+            path: /actuator/health/readiness
+            port: mgmt
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 1500m
+            memory: 1536Mi
+          requests:
+            cpu: 300m
+            memory: 768Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /app/config/schemas
+          name: schemas
+          readOnly: true
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      volumes:
+      - configMap:
+          name: lakehouse-schemas
+        name: schemas
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ingestion-service
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: ingestion-service
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingestion-service
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: '8082'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: ingestion-service
+        tier: application
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: lakehouse-app-config
+        - configMapRef:
+            name: ingestion-service-config
+        - secretRef:
+            name: lakehouse-secrets
+            optional: false
+        image: basharahmad/lakehouse-ingestion-service:1.0.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health/liveness
+            port: mgmt
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: ingestion-service
+        ports:
+        - containerPort: 8082
+          name: mgmt
+        readinessProbe:
+          failureThreshold: 12
+          httpGet:
+            path: /actuator/health/readiness
+            port: mgmt
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: '1'
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /app/config/schemas
+          name: schemas
+          readOnly: true
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      volumes:
+      - configMap:
+          name: lakehouse-schemas
+        name: schemas
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: query-service
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: query-service
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: query-service
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: '8081'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: query-service
+        tier: application
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: lakehouse-app-config
+        - configMapRef:
+            name: query-service-config
+        - secretRef:
+            name: lakehouse-secrets
+            optional: false
+        image: basharahmad/lakehouse-query-service:1.0.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health/liveness
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: query-service
+        ports:
+        - containerPort: 8081
+          name: http
+        readinessProbe:
+          failureThreshold: 12
+          httpGet:
+            path: /actuator/health/readiness
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: '1'
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /app/config/schemas
+          name: schemas
+          readOnly: true
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      volumes:
+      - configMap:
+          name: lakehouse-schemas
+        name: schemas
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: surface
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+  name: surface
+  namespace: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: surface
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: surface
+        tier: application
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: lakehouse-app-config
+        - configMapRef:
+            name: surface-config
+        - secretRef:
+            name: lakehouse-secrets
+            optional: false
+        image: basharahmad/lakehouse-surface:1.0.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health/liveness
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: surface
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          failureThreshold: 12
+          httpGet:
+            path: /actuator/health/readiness
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: '1'
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /app/config/schemas
+          name: schemas
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - cp /schemas-defaults/* /schemas/
+        image: busybox:1.36
+        name: seed-schemas
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /schemas-defaults
+          name: schemas-defaults
+          readOnly: true
+        - mountPath: /schemas
+          name: schemas
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      volumes:
+      - configMap:
+          name: lakehouse-schemas
+        name: schemas-defaults
+      - emptyDir: {}
+        name: schemas
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: lakehouse
+  labels:
+    app: web
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+spec:
+  type: ClusterIP
+  selector:
+    app: web
+  ports:
+  - name: http
+    port: 3001
+    targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: lakehouse
+  labels:
+    app: web
+    app.kubernetes.io/part-of: lakehouse
+    tier: application
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+        tier: application
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+      - name: web
+        image: basharahmad/lakehouse-web:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3001
+          name: http
+        env:
+        - name: SURFACE_BASE_URL
+          value: http://surface.lakehouse.svc.cluster.local:8080
+        - name: PORT
+          value: '3001'
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL

@@ -1,0 +1,86 @@
+apiVersion: v1
+data:
+  LAKEHOUSE_CACHE_INVALIDATION_GROUP_SUFFIX: default
+  LAKEHOUSE_CACHE_KIND: redis
+  LAKEHOUSE_GRPC_PORT: '9090'
+  LAKEHOUSE_MGMT_PORT: '8083'
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: graph-service-config
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  LAKEHOUSE_CACHE_KIND: redis
+  LAKEHOUSE_GRPC_PORT: '9091'
+  LAKEHOUSE_MGMT_PORT: '8084'
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: inference-service-config
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  LAKEHOUSE_INGESTION_GROUP: ingestion-service
+  LAKEHOUSE_MGMT_PORT: '8082'
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: ingestion-service-config
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  LAKEHOUSE_CASSANDRA_DC: datacenter1
+  LAKEHOUSE_CASSANDRA_HOST: cassandra.lakehouse.svc.cluster.local
+  LAKEHOUSE_CASSANDRA_KEYSPACE: lakehouse
+  LAKEHOUSE_CASSANDRA_PORT: '9042'
+  LAKEHOUSE_KAFKA_BOOTSTRAP: kafka.lakehouse.svc.cluster.local:9092
+  LAKEHOUSE_MINIO_BUCKET: lakehouse
+  LAKEHOUSE_MINIO_ENDPOINT: http://minio.lakehouse.svc.cluster.local:9000
+  LAKEHOUSE_OTLP_ENDPOINT: http://tempo.lakehouse.svc.cluster.local:4318/v1/traces
+  LAKEHOUSE_REDIS_HOST: redis.lakehouse.svc.cluster.local
+  LAKEHOUSE_REDIS_PORT: '6379'
+  LAKEHOUSE_SCHEMAS_ROOT: /app/config/schemas
+  LAKEHOUSE_STORAGE_KIND: minio
+  LAKEHOUSE_TRACING_SAMPLE: '1.0'
+  SPRING_PROFILES_ACTIVE: k8s
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: lakehouse-app-config
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  LAKEHOUSE_GRAPH_GRPC_PORT: '9090'
+  LAKEHOUSE_GRAPH_HOST: graph-service.lakehouse.svc.cluster.local
+  LAKEHOUSE_INFERENCE_GRPC_PORT: '9091'
+  LAKEHOUSE_INFERENCE_HOST: inference-service.lakehouse.svc.cluster.local
+  LAKEHOUSE_QUERY_FANOUT_POOL: '32'
+  LAKEHOUSE_QUERY_HTTP_PORT: '8081'
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: query-service-config
+  namespace: lakehouse
+---
+apiVersion: v1
+data:
+  LAKEHOUSE_QUERY_HOST: query-service.lakehouse.svc.cluster.local
+  LAKEHOUSE_QUERY_HTTP_PORT: '8081'
+  SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 50MB
+  SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 50MB
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+  name: surface-config
+  namespace: lakehouse

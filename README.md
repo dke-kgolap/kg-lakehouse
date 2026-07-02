@@ -1,6 +1,6 @@
 # Big KGOLAP - Lakehouse
 
-A cloud-native data lakehouse for **contextualised knowledge graphs (CKGs)**. Clients upload raw files (AIXM, IWXXM, FIXM); the system extracts multidimensional context hierarchies into an index, then reconstructs CKGs on demand by re-running mappers per context, applying merge and rollup, and returning the result as RDF, a labelled property graph (LPG), or a Spark GraphFrame.
+A cloud-native data lakehouse for **contextualised knowledge graphs (CKGs)**. Clients upload raw files (e.g AIXM, IWXXM, FIXM); the system extracts multidimensional context hierarchies into an index, then reconstructs CKGs on demand by re-running mappers per context, applying merge and rollup, and returning the result as RDF, a labelled property graph (LPG), or a Spark GraphFrame.
 
 | Property | Value |
 | --- | --- |
@@ -12,7 +12,7 @@ A cloud-native data lakehouse for **contextualised knowledge graphs (CKGs)**. Cl
 | Graphs | Apache Jena (RDF) · Apache TinkerPop (LPG) · GraphFrames (Spark) |
 | Service-to-service | gRPC + protobuf |
 | Observability | Micrometer + OpenTelemetry → Prometheus / Tempo / Loki / Grafana |
-| Deployment | Docker Compose (dev) · K3s + Kustomize (cluster) |
+| Deployment | Docker Compose (local) · Kubernetes (cluster) |
 
 ---
 
@@ -108,169 +108,33 @@ asserted content only (no native named-graph concept).
 ## Documentation
 
 | Document | Contents |
-|---|---|
+| --- | --- |
 | [docs/high-level-design.md](docs/high-level-design.md) | Goals, system context, component responsibilities, metric catalogue, sequence diagrams. Start here. |
-| [docs/low-level-design.md](docs/low-level-design.md) | Module-by-module spec: domain model, Cassandra schema, gRPC proto, query language, YAML formats, observability wiring, K8s manifests. |
-| [docs/reports/k3s-deployment-guide.md](docs/reports/k3s-deployment-guide.md) | Operator runbook: install K3s → build images → apply manifests → verify → tear down. |
-| [papers/SIDs_2025__AWARE_.pdf](papers/SIDs_2025__AWARE_.pdf) | Original paper: domain context (AIM/AWARE/SESAR), motivating use cases, conceptual model. |
-| [papers/swj2504.pdf](papers/swj2504.pdf) | Companion paper (Semantic Web Journal): deeper treatment of CKGs and KG-OLAP. |
+| [docs/deployment-docker.md](docs/deployment-docker.md) | Run the full stack locally with Docker Compose. |
+| [docs/deployment-kubernetes.md](docs/deployment-kubernetes.md) | Deploy to a Kubernetes cluster with the example manifests. |
 
 ---
 
-## User manual
+## Deployment
 
-### Prerequisites
+Both deployment paths use the published release images (`basharahmad/lakehouse-*:1.0.0`); no local build is required.
 
-| Requirement | Version |
-|---|---|
-| Java (JDK) | 21+ |
-| Maven | 3.9+ |
-| Docker + Docker Compose | v2 |
-| `curl` | any |
-| `grpcurl` (for graph demos) | any |
+- **Local (Docker Compose)** — the full stack on one machine. See [docs/deployment-docker.md](docs/deployment-docker.md).
+- **Kubernetes** — the example manifests under [`deploy/kubernetes`](deploy/kubernetes). See [docs/deployment-kubernetes.md](docs/deployment-kubernetes.md).
 
-### 1. Start the infrastructure
+The quickest way to try the system locally:
 
 ```sh
+cd deploy/docker
 docker compose up -d --wait
-```
-
-This starts Cassandra, Kafka, Redis, MinIO, Prometheus, Grafana, Tempo, Loki, and Promtail. The `--wait` flag blocks until all health checks pass (~90 s on first run).
-
-### 2. Build the services
-
-```sh
-mvn package -DskipTests
-```
-
-A self-contained executable JAR file is written to each service's `target/` directory.
-
-### 3. Start the services
-
-Open a terminal per service:
-
-```sh
-# Terminal 1 — REST gateway (port 8080)
-LAKEHOUSE_STORAGE_KIND=minio \
-  java -jar services/surface/target/surface-1.0.0.jar
-
-# Terminal 2 — ingestion pipeline
-LAKEHOUSE_STORAGE_KIND=minio \
-  java -jar services/ingestion-service/target/ingestion-service-1.0.0.jar
-
-# Terminal 3 — query orchestrator (port 8081)
-java -jar services/query-service/target/query-service-1.0.0.jar
-
-# Terminal 4 — gRPC graph service (port 9090)
-java -jar services/graph-service/target/graph-service-1.0.0.jar
-
-# Terminal 5 — gRPC inference service (port 9091); only needed for reasoning=on queries
-java -jar services/inference-service/target/inference-service-1.0.0.jar
-```
-
-`LAKEHOUSE_STORAGE_KIND=minio` routes file I/O through the MinIO container. Omit it to use the local filesystem (no MinIO required, but the two storage backends won't share files).
-
-### 4. Register a schema
-
-A schema defines the dimensions, levels, and rollup functions for a domain. The ATM schema is bundled:
-
-```sh
-curl -s -X POST http://localhost:8080/api/schemas \
-     -H "Content-Type: application/yaml" \
-     --data-binary @config/schemas/atm.yaml
-```
-
-Verify:
-
-```sh
-curl -s http://localhost:8080/api/schemas/atm | jq .
-```
-
-### 5. Ingest a file
-
-Upload a multi-feature AIXM file and associate it with the `atm` schema:
-
-```sh
-curl -s -X POST "http://localhost:8080/api/schemas/atm/files" \
-     -F "file=@engines/aixm-engine-test-support/src/main/resources/fixtures/aixm-multi-feature.xml" \
-     -F "contentType=application/xml+aixm"
-```
-
-The ingestion service will extract context hierarchies asynchronously. Poll the stats endpoint to confirm:
-
-```sh
-curl -s http://localhost:8080/api/schemas/atm/stats | jq .
-# expect: totalContexts >= 1
-```
-
-### 6. Query a knowledge graph
-
-Issue a KG query using the SQL-style syntax:
-
-```sh
-curl -s -X POST http://localhost:8081/api/schemas/atm/query \
-     -H "Content-Type: application/json" \
-     -d '{
-           "query": "SELECT * FROM atm",
-           "representation": "RDF"
-         }' | jq .
-```
-
-Supported `representation` values: `RDF`, `LPG`, `GRAPHFRAME`.
-
-### 7. Run acceptance demos
-
-Each script exercises one end-to-end feature path and asserts a result:
-
-```sh
-scripts/demo-ingestion.sh        # schema registration + AIXM ingestion
-scripts/demo-query.sh            # slice/dice + rollup query
-scripts/demo-graph.sh            # gRPC graph streaming
-scripts/demo-multigraph.sh       # RDF / LPG / GraphFrame from the same query
-scripts/demo-meteorology.sh      # IWXXM engine + meteo schema
-scripts/demo-observability.sh    # trace propagation + Prometheus metrics
-scripts/demo-benchmark.sh        # p50/p95/p99 latency report
-scripts/demo-experiment.sh       # YAML-driven parameter-sweep experiment
-```
-
-### 8. Tear down
-
-```sh
-docker compose down -v
-```
-
-The `-v` flag removes all named volumes (Cassandra data, MinIO objects, etc.).
-
----
-
-## Quick start (K3s cluster)
-
-Full deployment runbook: **[docs/reports/k3s-deployment-guide.md](docs/reports/k3s-deployment-guide.md)**.
-
-Short version (Linux + native K3s):
-
-```sh
-curl -sfL https://get.k3s.io | sh -                    # install K3s
-TAG=dev scripts/build-images.sh                        # build the five service images
-TAG=dev scripts/k3s-import.sh                          # import into K3s' containerd
-kubectl apply -k deploy/k8s/overlays/dev               # apply manifests (~45 resources)
-scripts/demo-k3s.sh                                    # end-to-end self-check
-```
-
-To run a parameter-sweep experiment that scales replicas via the K8s API:
-
-```sh
-kubectl apply -k deploy/k8s/overlays/experiment
-mvn package -pl tools/experiment-runner -am -DskipTests -q
-java -jar tools/experiment-runner/target/experiment-runner-1.0.0.jar \
-    run experiments/sample-cache-warmth.yaml --output-dir /tmp/exp/
+curl -fsS http://localhost:8080/actuator/health
 ```
 
 ---
 
 ## Repository layout
 
-```
+```shell
 .
 ├── libs/                     # Shared library modules
 │   ├── domain-model/         # CKG domain types: CubeSchema, Hierarchy, Context, Member, …
@@ -303,7 +167,6 @@ java -jar tools/experiment-runner/target/experiment-runner-1.0.0.jar \
 ├── config/schemas/           # Cube schemas (atm.yaml, fixm.yaml, meteo.yaml)
 ├── bench/                    # Benchmark workload definitions
 ├── experiments/              # Sample experiment YAMLs
-├── evaluation/               # Self-contained E1–E5 experiment suite (own cluster/, deploy/, harness/, datasets/); published as a standalone repository
 ├── web/                      # Next.js operator console
 ├── scripts/                  # Demo + build scripts
 ├── papers/                   # Reference papers
@@ -311,12 +174,14 @@ java -jar tools/experiment-runner/target/experiment-runner-1.0.0.jar \
 └── pom.xml                   # Root Maven POM
 ```
 
+The E1–E5 experiment suite is maintained in a separate repository (link to be added).
+
 ---
 
 ## Building and testing
 
 | Command | Purpose |
-|---|---|
+| --- | --- |
 | `mvn package` | Compile + assemble all JARs + run unit tests |
 | `mvn verify` | `package` + spotless format check |
 | `mvn package -DskipTests` | Fast build, skip tests |
@@ -326,6 +191,7 @@ java -jar tools/experiment-runner/target/experiment-runner-1.0.0.jar \
 | `mvn package -pl tools/experiment-runner -am -DskipTests` | Build the experiment-runner CLI JAR |
 
 Conventions:
+
 - Spring Boot `@Configuration` classes whose beans are replaced in tests carry `@Profile("!test")`.
 - All inter-service messaging goes through `MessagingService` in `libs/messaging-client`. No `@KafkaListener` in service code.
 - Test doubles live under `src/test/java/.../fakes/` and are shared via `*-test-support` modules.
