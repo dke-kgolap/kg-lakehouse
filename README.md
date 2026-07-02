@@ -18,6 +18,10 @@ A cloud-native data lakehouse for **contextualised knowledge graphs (CKGs)**. Cl
 
 ## Architecture
 
+The system separates into a **backend** of five services and an optional **frontend** web console. The two are decoupled: the frontend reaches the backend only through the `surface` gateway's HTTP API.
+
+### Backend
+
 Five Spring Boot services communicate exclusively through Kafka (asynchronous messaging) or gRPC (synchronous calls); they share no direct code dependencies. The diagram below shows the four services on the core request path; the fifth, the inference service, is optional and is described in the table that follows.
 
 ```mermaid
@@ -42,9 +46,31 @@ graph LR
 | **`graph-service`** | gRPC server. Loads raw files from MinIO, runs engine Mappers, builds and caches **base/asserted** graphs in Redis. Performs no reasoning, so it stays on the latency-critical request path. |
 | **`inference-service`** | gRPC server (optional). Stateless: given a context's base graph + schema/engine, runs the rule engine (`libs/reasoning`, Jena) and returns derived triples; caches them per `(context, ruleset)`. |
 
+### Frontend
+
+A **web console** (Next.js) offers a browser interface over the `surface` gateway. It queries the knowledge graph and visualises the result as a graph, table, OLAP cube, or raw data; browses schemas; ingests source files; reviews query history; and monitors service health. It is a standalone service that calls only `surface` and passes through its authentication.
+
+Because the frontend uses only the public `surface` API, it is optional and replaceable. You can run the bundled console as-is, extend it, or build your own interface — a custom dashboard, a notebook integration, or a domain-specific viewer — against the same API.
+
 ---
 
-## Query flow
+## Ingestion flow
+
+```mermaid
+flowchart TD
+    A([Raw file upload]) --> B[Surface\naccept upload · publish task]
+    B -->|Kafka: IngestionTask| C[Ingestion Service]
+    C --> D[run Analyzer → context hierarchies]
+    D --> E[(Cassandra Index\nwrite hierarchies)]
+    C --> F[(MinIO\nstore raw file)]
+    C --> G[(Redis\ninvalidate cache)]
+```
+
+Ingestion stores the raw file once and records in the index only the multidimensional context hierarchies (time, location, topic) extracted from it. The construction flow below uses those hierarchies to reconstruct graphs on demand.
+
+---
+
+## CKG construction flow
 
 ```mermaid
 flowchart TD
@@ -130,6 +156,8 @@ docker compose up -d --wait
 curl -fsS http://localhost:8080/actuator/health
 ```
 
+Once the stack is running, the web console is at <http://localhost:3001> and Grafana at <http://localhost:3000>.
+
 ---
 
 ## Repository layout
@@ -207,6 +235,8 @@ Conventions:
 **New rollup function**: register via `RollUpFun.register("name", fn)`. Built-ins: `builtin:date_to_month`, `builtin:date_to_year`, `lookup`.
 
 **New dimension or level**: edit the YAML schema (`config/schemas/atm.yaml`); no code change required.
+
+**New frontend**: build any client against the `surface` gateway's HTTP API — schema management, file ingestion, and CKG queries are all exposed there. The bundled web console (`web/`) is a reference implementation; a replacement frontend needs no backend change.
 
 ---
 

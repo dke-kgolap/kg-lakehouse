@@ -89,6 +89,12 @@ kubectl -n lakehouse port-forward svc/web 3001:3001
 kubectl -n lakehouse port-forward svc/grafana 3000:3000        # with observability
 ```
 
+The **web console** is then at <http://localhost:3001>: a browser interface over
+the gateway for querying and visualising the knowledge graph (graph, table,
+OLAP-cube, and raw views), browsing schemas, ingesting files, and monitoring
+health. It proxies to the gateway and prompts for the surface credentials from
+your secret.
+
 Then verify the gateway (the health endpoint is open; other endpoints use the
 credentials from your secret):
 

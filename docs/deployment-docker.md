@@ -58,10 +58,16 @@ curl -fsS -u admin:admin http://localhost:8080/api/schemas/atm
 | Component | URL | Credentials |
 | --- | --- | --- |
 | REST gateway (surface) | http://localhost:8080 | `admin` / `admin` |
-| Web console | http://localhost:3001 | — |
+| Web console | http://localhost:3001 | prompts for the surface login (`admin` / `admin`) |
 | Grafana | http://localhost:3000 | `admin` / `admin` |
 | Prometheus | http://localhost:9099 | — |
 | MinIO console | http://localhost:9001 | `minioadmin` / `minioadmin` |
+
+The **web console** (port 3001) is a browser interface over the gateway: query
+the knowledge graph and view the result as a graph, table, OLAP cube, or raw
+data, browse schemas, ingest source files, review query history, and monitor
+service health. It proxies to the gateway, so on first load it prompts for the
+surface login (`admin` / `admin` by default).
 
 Tracing is enabled in this local stack, so once you exercise the API the traces
 appear in Grafana under the Tempo data source, and container logs under Loki.

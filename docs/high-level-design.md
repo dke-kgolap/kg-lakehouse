@@ -31,8 +31,6 @@ This document covers:
 - Infrastructure and deployment topology.
 - Cross-cutting concerns (observability, security, configuration).
 
-For class-level design, interfaces, data schemas, and protocol definitions, see the [Low-Level Design Document](low-level-design.md).
-
 ### 1.4 Terminology
 
 | Term | Definition |
@@ -71,7 +69,7 @@ For class-level design, interfaces, data schemas, and protocol definitions, see 
 
 - **Real-time stream processing**: The system processes files/messages, not continuous event streams. Stream processing (e.g., via Kafka Streams) may be added as a separate service later.
 - **Full query and analytics engines**: The lakehouse constructs CKGs and offers optional, opt-in rule-based inference (via the Inference Service, see Section 3.3). SPARQL querying, graph analytics, and reporting remain the responsibility of downstream applications.
-- **User-facing UI**: The system exposes REST APIs. Any UI is a separate concern.
+- **A comprehensive user-facing UI**: The backend remains UI-agnostic, exposing all functionality through the `surface` REST API. A reference web console ships with the system (see Section 3.5), but a full-featured or domain-specific interface is left to downstream applications.
 - **Multi-tenancy**: Single-tenant deployment. Multi-schema support is for experimentation, not tenant isolation.
 
 ---
@@ -142,6 +140,16 @@ Non-deployable libraries shared across services:
 | **reasoning** | RDFS/OWL closure (Jena) and schema-derived TBox for the Inference Service |
 | **observability** | Micrometer metrics + OpenTelemetry tracing configuration |
 
+### 3.5 Frontend (Web Console)
+
+A reference web console (Next.js) provides a browser interface to the system. It is a separate, optional service — it is not part of the backend's messaging mesh, and it reaches the backend solely through the `surface` gateway's HTTP API.
+
+**Responsibilities.** The console lets an operator submit CKG queries and inspect the result as a graph, table, OLAP cube, or raw data; browse registered schemas; upload source files for ingestion; review query history; and monitor service health.
+
+**Boundary and security.** The browser never calls `surface` directly. Each screen accesses the backend through the console's own same-origin routes, which proxy server-side to `surface`. The gateway credentials are held only on the server side and injected by the proxy, so they never reach the browser; the console keeps no credentials of its own and passes through `surface`'s HTTP Basic authentication.
+
+**Design stance.** Because the console depends only on the public `surface` API, the frontend is optional and replaceable. It serves as a reference implementation; an alternative interface — a custom dashboard, a notebook integration, or a domain-specific viewer — can be built against the same API with no change to the backend. This keeps the backend UI-agnostic, as stated in Section 2.2.
+
 ---
 
 ## 4. Data Flow
@@ -177,7 +185,7 @@ sequenceDiagram
 6. The appropriate Content Analyzer (determined by engine type) extracts multidimensional context hierarchies
 7. Context indexes are inserted or updated in Cassandra (hierarchies, contexts, file-context links)
 
-### 4.2 CKG Construction (Query)
+### 4.2 CKG Construction
 
 ```mermaid
 sequenceDiagram
@@ -190,7 +198,7 @@ sequenceDiagram
     participant Redis
     participant INF as Inference Service
 
-    Client->>Surface: POST /query (KG spec)
+    Client->>Surface: POST /query (CKG spec)
     Surface->>QS: Forward
     QS->>Cassandra: Get contexts
     Cassandra-->>QS: contexts
@@ -214,7 +222,8 @@ sequenceDiagram
 ```
 
 **Steps:**
-1. Client submits a KG specification (dimensions, levels, values, rollup instructions) to the Surface
+
+1. Client submits a CKG specification (dimensions, levels, values, rollup instructions) to the Surface
 2. Surface forwards to Query Service
 3. Query Service parses the specification into slice/dice context + merge levels
 4. Query Service resolves matching contexts from the Cassandra index
@@ -414,6 +423,7 @@ graph LR
 ### 9.2 Experiment Configuration
 
 Experiments are defined as YAML files specifying:
+
 - Parameters to vary (file counts, replica counts, batch sizes)
 - Data source and engine type
 - Metrics to collect
@@ -443,28 +453,3 @@ Experiments are defined as YAML files specifying:
 - Raw files stored in MinIO with bucket-level access control
 - Cassandra authentication enabled in production
 - No personally identifiable information (PII) in the default ATM use case; domain-specific data handling is the responsibility of the engine plugins
-
----
-## 11. Relation to the Paper
-
-This architecture directly implements the system described in Ahmad & Schuetz (2025), with the following mapping:
-
-| Paper Component | Implementation |
-|-----------------|---------------|
-| Surface Service (Fig. 2) | `surface` module |
-| Ingestion Scheduler (Fig. 2) | Part of `surface` (IngestionScheduler) |
-| Queue Service (Fig. 2) | Apache Kafka |
-| Storage Service (Fig. 2) | MinIO via `storage-client` |
-| Ingestion Service (Fig. 3) | `ingestion-service` module |
-| Index Service (Fig. 4) | `index-client` → Cassandra |
-| Content Analyzer (Fig. 4) | Engine plugins (`engine-api`) |
-| Query Service (Fig. 5) | `query-service` module |
-| Graph Service (Fig. 5) | `graph-service` module |
-| Cache Service (Fig. 5) | Redis via `cache-client` |
-
-Key extensions beyond the paper:
-- Domain-agnostic design (configurable dimensions)
-- Multi-graph representation (RDF, LPG, GraphFrames)
-- Observability (OpenTelemetry, Prometheus)
-- Automated experiment management
-- Optional rule-based inference (`inference-service`, opt-in reasoning)
