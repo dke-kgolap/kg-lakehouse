@@ -238,8 +238,8 @@ Conventions:
 
 ## License and citation
 
-If you use this work, please cite the SIDs 2025 paper:
+If you use this work, please cite:
 
-> Ahmad, B. & Schuetz, C. (2025). *A Cloud-Native Lakehouse Architecture for Using Knowledge Graphs in Aeronautical Information Management*. SIDs 2025.
-
+> ...
+> 
 The repository is distributed without a license file; treat it as research code shared in good faith.
