@@ -1,5 +1,7 @@
 package at.jku.dke.bigkgolap.query.service;
 
+import at.jku.dke.bigkgolap.grpc.InferBatchRequest;
+import at.jku.dke.bigkgolap.grpc.InferContext;
 import at.jku.dke.bigkgolap.grpc.InferRequest;
 import at.jku.dke.bigkgolap.grpc.InferenceServiceGrpc;
 import at.jku.dke.bigkgolap.query.exception.GraphNotAvailableException;
@@ -8,7 +10,9 @@ import at.jku.dke.bigkgolap.query.exception.QueryTimeoutException;
 import io.grpc.StatusRuntimeException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -54,6 +58,42 @@ public class InferenceServiceClient {
       throw map(e, schemaId, contextId);
     }
     return new InferResult(out, fromCache);
+  }
+
+  /** One context's inference work unit for a batched call. */
+  public record InferContextSpec(String contextId, String engineId, List<String> baseQuads) {}
+
+  /**
+   * Batched inference: returns derived triples grouped by context id (one entry per requested
+   * context).
+   */
+  public Map<String, List<String>> inferBatch(String schemaId, List<InferContextSpec> contexts) {
+    if (contexts.isEmpty()) {
+      throw new IllegalArgumentException("contexts must not be empty");
+    }
+    InferBatchRequest.Builder req = InferBatchRequest.newBuilder().setSchemaId(schemaId);
+    Map<String, List<String>> byContext = new LinkedHashMap<>();
+    for (InferContextSpec c : contexts) {
+      req.addContexts(
+          InferContext.newBuilder()
+              .setContextId(c.contextId())
+              .setEngineId(c.engineId() == null ? "" : c.engineId())
+              .addAllBaseQuads(c.baseQuads()));
+      byContext.put(c.contextId(), new ArrayList<>());
+    }
+    try {
+      var iterator =
+          stub.withDeadlineAfter(timeoutSeconds, TimeUnit.SECONDS).inferBatch(req.build());
+      while (iterator.hasNext()) {
+        var resp = iterator.next();
+        byContext
+            .computeIfAbsent(resp.getContextId(), k -> new ArrayList<>())
+            .addAll(resp.getDerivedTriplesList());
+      }
+    } catch (StatusRuntimeException e) {
+      throw map(e, schemaId, contexts.get(0).contextId());
+    }
+    return byContext;
   }
 
   private RuntimeException map(StatusRuntimeException e, String schemaId, String contextId) {

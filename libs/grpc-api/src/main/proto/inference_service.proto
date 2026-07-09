@@ -17,8 +17,22 @@ message InferRequest {
 message InferResponse {
     repeated string derived_triples = 1; // N-Triples lines of inferred triples (graph-agnostic)
     bool from_cache = 2;                 // true on the final chunk if served from the derived cache
+    string context_id = 3;               // which context this chunk belongs to ("" on legacy Infer)
+}
+
+// One context's inference work unit for a batched call (mirrors ContextQuery on the graph side).
+message InferContext {
+    string context_id = 1;
+    string engine_id = 2;
+    repeated string base_quads = 3;
+}
+
+message InferBatchRequest {
+    string schema_id = 1;
+    repeated InferContext contexts = 2;
 }
 
 service InferenceService {
     rpc Infer(InferRequest) returns (stream InferResponse);
+    rpc InferBatch(InferBatchRequest) returns (stream InferResponse);
 }

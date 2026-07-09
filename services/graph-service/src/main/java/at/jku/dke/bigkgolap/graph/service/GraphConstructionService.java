@@ -16,16 +16,19 @@ public class GraphConstructionService {
   private final FileLoaderService loader;
   private final MeterRegistry meterRegistry;
   private final InProcessGraphCache l1;
+  private final ConstructionThrottle throttle;
 
   public GraphConstructionService(
       GraphCache cache,
       FileLoaderService loader,
       MeterRegistry meterRegistry,
-      InProcessGraphCache l1) {
+      InProcessGraphCache l1,
+      ConstructionThrottle throttle) {
     this.cache = cache;
     this.loader = loader;
     this.meterRegistry = meterRegistry;
     this.l1 = l1;
+    this.throttle = throttle;
   }
 
   public GraphResult buildGraph(
@@ -46,7 +49,18 @@ public class GraphConstructionService {
       return result;
     }
     recordHit("miss", schemaId, representation);
-    GraphResult result = loader.loadAndBuild(schemaId, contextId, representation);
+    GraphResult result;
+    try {
+      throttle.acquire();
+      try {
+        result = loader.loadAndBuild(schemaId, contextId, representation);
+      } finally {
+        throttle.release();
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new GraphConstructionException("interrupted awaiting construction permit", e);
+    }
     cache.upsertGraph(schemaId, contextId, representation, result.serialized());
     promote(key, result);
     return result;

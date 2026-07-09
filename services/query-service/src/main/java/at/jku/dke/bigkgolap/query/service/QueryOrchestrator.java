@@ -9,6 +9,7 @@ import at.jku.dke.bigkgolap.query.api.dto.QueryResponse;
 import at.jku.dke.bigkgolap.query.api.dto.QueryTimings;
 import at.jku.dke.bigkgolap.query.exception.InvalidQueryException;
 import at.jku.dke.bigkgolap.query.exception.QueryTimeoutException;
+import at.jku.dke.bigkgolap.query.util.QuadHash;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -121,7 +122,8 @@ public class QueryOrchestrator {
    *
    * <p>Returns a {@link QueryResponse} with {@link QueryResponse#data()} = "" and {@link
    * QueryResponse#quadCount()} reflecting the UNIQUE quads streamed — duplicates across contexts
-   * are removed on the asserted (reasoning=false) path; the reasoning=true path is left unchanged.
+   * are removed on the asserted (reasoning=false) path; the reasoning=true path is batched too but
+   * remains un-deduped.
    */
   public QueryResponse executeStreaming(
       String schemaId, String queryText, ParsedQuery parsed, Consumer<String> quadSink) {
@@ -152,22 +154,18 @@ public class QueryOrchestrator {
     long mergeNanos = System.nanoTime() - mergeStart;
     mergeTimer.record(mergeNanos, TimeUnit.NANOSECONDS);
 
-    // Bug B: on the asserted (reasoning=false) path the per-context fan-out legitimately re-emits
-    // shared context graphs' quads — the same (s,p,o,g) is reachable from multiple target contexts
-    // (CKR inheritance / the general-ids pattern), which inflated the response ~16x (a depth-2
-    // territory query streamed 16,083,295 quads of which only ~1,022,620 were unique).
-    // graph-service
-    // constructs each context from its FULL graphUris, so the dedup must be on the EMITTED quads,
-    // not on which graphs are fetched. dedupSink streams each unique quad once; reasoning=true is
-    // left unchanged (reasoning is application-side, descoped). Memory: the seen-set holds the
-    // unique
-    // result the client receives, not the duplicated stream.
-    final Set<String> emittedQuads = parsed.reasoning() ? null : ConcurrentHashMap.newKeySet();
+    // On the asserted (reasoning=false) path the per-context fan-out legitimately re-emits shared
+    // context graphs' quads (CKR inheritance / general-ids), so we dedup on the EMITTED quad. The
+    // seen-set stores a 128-bit hash per unique quad rather than the full string, bounding memory
+    // to
+    // the unique result. The reasoning=true path is now batched too, but stays un-deduped
+    // (application-side, descoped).
+    final Set<QuadHash> emitted = parsed.reasoning() ? null : ConcurrentHashMap.newKeySet();
     Consumer<String> dedupSink =
-        emittedQuads == null
+        emitted == null
             ? quadSink
             : q -> {
-              if (emittedQuads.add(q)) {
+              if (emitted.add(QuadHash.of(q))) {
                 quadSink.accept(q);
               }
             };
@@ -177,7 +175,7 @@ public class QueryOrchestrator {
     totalTimer.record(totalNanos, TimeUnit.NANOSECONDS);
 
     // Deduped emit count on the asserted path; raw fan-out count when reasoning is on.
-    long emittedCount = emittedQuads == null ? fanOut.quadCount() : emittedQuads.size();
+    long emittedCount = emitted == null ? fanOut.quadCount() : emitted.size();
 
     contextsSummary.record(knowledgeMap.size());
     quadsSummary.record(emittedCount);
@@ -242,14 +240,8 @@ public class QueryOrchestrator {
     var cacheMisses = new AtomicInteger(0);
     Set<Throwable> errors = ConcurrentHashMap.newKeySet();
 
-    // reasoning=true keeps the per-context fan-out: each context's base quads must be fed to a
-    // separate per-context inference RPC (inferDerived).
-    // TODO(scaling): the reasoning=true path keeps per-context fan-out and will show the SAME
-    // per-RPC overhead inflation under graph scale-out that the batched reasoning=false path
-    // fixes, PLUS a separate inference-service scatter-gather. Batch it later if reasoning is
-    // scaled — this is expected, not a new bug. See
     if (parsed.reasoning()) {
-      return fanOutPerContext(
+      return fanOutBatchedReasoning(
           schemaId,
           knowledgeMap,
           leafIds,
@@ -264,7 +256,11 @@ public class QueryOrchestrator {
         schemaId, knowledgeMap, parsed, quadSink, quadCount, cacheHits, cacheMisses, errors);
   }
 
-  private FanOutResult fanOutPerContext(
+  /** One reasoning context's resolved work: which final contexts it belongs to and their URIs. */
+  private record ReasoningUnit(
+      String contextId, Set<Context> finalContexts, List<String> graphUris) {}
+
+  private FanOutResult fanOutBatchedReasoning(
       String schemaId,
       Map<String, Set<Context>> knowledgeMap,
       Set<String> leafIds,
@@ -274,36 +270,75 @@ public class QueryOrchestrator {
       AtomicInteger cacheHits,
       AtomicInteger cacheMisses,
       Set<Throwable> errors) {
-    var pending = new AtomicInteger(knowledgeMap.size());
-    var done = new CountDownLatch(knowledgeMap.size());
+    // Already on the reasoning path; infer means RDF output with a wired inference client.
+    boolean infer = parsed.representation() == GraphRepresentation.RDF && inferenceClient != null;
+
+    // Membership + asserted-module metadata is client-side per context (as on the asserted path).
+    List<ReasoningUnit> units = new ArrayList<>(knowledgeMap.size());
     for (var entry : knowledgeMap.entrySet()) {
-      String contextId = entry.getKey();
       Set<Context> finalContexts = entry.getValue();
+      List<String> graphUris = finalContexts.stream().map(this::graphUriFor).toList();
+      addContextMembership(quadSink, quadCount, graphUris, finalContexts, parsed.representation());
+      units.add(new ReasoningUnit(entry.getKey(), finalContexts, graphUris));
+    }
+
+    List<List<ReasoningUnit>> batches = new ArrayList<>();
+    for (int i = 0; i < units.size(); i += batchSize) {
+      batches.add(units.subList(i, Math.min(i + batchSize, units.size())));
+    }
+    var pending = new AtomicInteger(batches.size());
+    var done = new CountDownLatch(batches.size());
+    for (var batch : batches) {
       executor.submit(
           () -> {
             try {
-              List<String> graphUris = finalContexts.stream().map(this::graphUriFor).toList();
-              addContextMembership(
-                  quadSink, quadCount, graphUris, finalContexts, parsed.representation());
-              var result =
-                  graphClient.queryQuads(schemaId, contextId, graphUris, parsed.representation());
-              for (String quad : result.lines()) {
-                quadSink.accept(quad);
-                quadCount.incrementAndGet();
-              }
-              if (result.fromCache()) {
-                cacheHits.incrementAndGet();
-              } else {
-                cacheMisses.incrementAndGet();
-              }
-              if (parsed.reasoning()
-                  && parsed.representation() == GraphRepresentation.RDF
-                  && inferenceClient != null) {
-                addDerivedModuleMetadata(quadSink, quadCount, graphUris);
-                if (leafIds.contains(contextId)) {
-                  addCoverage(quadSink, quadCount, contextId, finalContexts);
+              List<GraphQueryServiceClient.ContextQuerySpec> specs =
+                  batch.stream()
+                      .map(
+                          u ->
+                              new GraphQueryServiceClient.ContextQuerySpec(
+                                  u.contextId(), u.graphUris()))
+                      .toList();
+              var grouped =
+                  graphClient.queryQuadsBatchGrouped(schemaId, specs, parsed.representation());
+              cacheHits.addAndGet(grouped.cacheHits());
+              cacheMisses.addAndGet(grouped.cacheMisses());
+
+              // Emit each context's base quads (its -mod graph).
+              for (var u : batch) {
+                for (String quad :
+                    grouped.linesByContext().getOrDefault(u.contextId(), List.of())) {
+                  quadSink.accept(quad);
+                  quadCount.incrementAndGet();
                 }
-                inferDerived(schemaId, contextId, graphUris, result.lines(), quadSink, quadCount);
+              }
+
+              if (infer) {
+                List<InferenceServiceClient.InferContextSpec> inferSpecs =
+                    batch.stream()
+                        .map(
+                            u ->
+                                new InferenceServiceClient.InferContextSpec(
+                                    u.contextId(),
+                                    resolver.engineForContext(schemaId, u.contextId()),
+                                    grouped
+                                        .linesByContext()
+                                        .getOrDefault(u.contextId(), List.of())))
+                        .toList();
+                Map<String, List<String>> derived =
+                    inferenceClient.inferBatch(schemaId, inferSpecs);
+                for (var u : batch) {
+                  addDerivedModuleMetadata(quadSink, quadCount, u.graphUris());
+                  if (leafIds.contains(u.contextId())) {
+                    addCoverage(quadSink, quadCount, u.contextId(), u.finalContexts());
+                  }
+                  for (String triple : derived.getOrDefault(u.contextId(), List.of())) {
+                    for (String graphUri : u.graphUris()) {
+                      quadSink.accept(toModuleQuad(triple, graphUri + INF_SUFFIX));
+                      quadCount.incrementAndGet();
+                    }
+                  }
+                }
               }
             } catch (RuntimeException e) {
               errors.add(e);
@@ -313,7 +348,9 @@ public class QueryOrchestrator {
             }
           });
     }
-    awaitFanOut(done, pending, knowledgeMap.size());
+    // Each reasoning batch runs two sequential RPCs (grouped graph read + inference), so budget
+    // two timeout units per batch.
+    awaitFanOut(done, pending, batches.size() * 2);
     throwFirstError(errors);
     return new FanOutResult(quadCount.get(), cacheHits.get(), cacheMisses.get());
   }
@@ -346,11 +383,15 @@ public class QueryOrchestrator {
       executor.submit(
           () -> {
             try {
-              var result = graphClient.queryQuadsBatch(schemaId, batch, parsed.representation());
-              for (String quad : result.lines()) {
-                quadSink.accept(quad);
-                quadCount.incrementAndGet();
-              }
+              var result =
+                  graphClient.queryQuadsBatch(
+                      schemaId,
+                      batch,
+                      parsed.representation(),
+                      q -> {
+                        quadSink.accept(q);
+                        quadCount.incrementAndGet();
+                      });
               cacheHits.addAndGet(result.cacheHits());
               cacheMisses.addAndGet(result.cacheMisses());
             } catch (RuntimeException e) {
@@ -385,27 +426,6 @@ public class QueryOrchestrator {
       Throwable first = errors.iterator().next();
       if (first instanceof RuntimeException re) throw re;
       throw new RuntimeException(first);
-    }
-  }
-
-  /**
-   * Calls the inference-service with the context's base graph and stamps the returned derived
-   * triples into each final context's {@code -inf} (derived) module. RDF only.
-   */
-  private void inferDerived(
-      String schemaId,
-      String contextId,
-      List<String> graphUris,
-      List<String> baseQuads,
-      Consumer<String> quadSink,
-      AtomicLong quadCount) {
-    String engineId = resolver.engineForContext(schemaId, contextId);
-    var inferred = inferenceClient.infer(schemaId, contextId, engineId, baseQuads);
-    for (String triple : inferred.derivedTriples()) {
-      for (String graphUri : graphUris) {
-        quadSink.accept(toModuleQuad(triple, graphUri + INF_SUFFIX));
-        quadCount.incrementAndGet();
-      }
     }
   }
 

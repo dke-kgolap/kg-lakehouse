@@ -2,6 +2,7 @@ package at.jku.dke.bigkgolap.graph.grpc;
 
 import at.jku.dke.bigkgolap.engine.Engines;
 import at.jku.dke.bigkgolap.graph.fakes.InMemoryGraphCache;
+import at.jku.dke.bigkgolap.graph.service.ConstructionThrottle;
 import at.jku.dke.bigkgolap.graph.service.FileLoaderService;
 import at.jku.dke.bigkgolap.graph.service.GraphConstructionService;
 import at.jku.dke.bigkgolap.graph.service.InProcessGraphCache;
@@ -52,7 +53,9 @@ class GraphQueryServiceImplTest {
     var engines = Engines.discover();
     var loader = new FileLoaderService(storage, index, engines);
     l1 = new InProcessGraphCache(true, 1024, new SimpleMeterRegistry());
-    var construction = new GraphConstructionService(cache, loader, new SimpleMeterRegistry(), l1);
+    var construction =
+        new GraphConstructionService(
+            cache, loader, new SimpleMeterRegistry(), l1, new ConstructionThrottle(4));
     var impl = new GraphQueryServiceImpl(construction, new SimpleMeterRegistry(), SMALL_CHUNK);
     server =
         InProcessServerBuilder.forName(serverName)

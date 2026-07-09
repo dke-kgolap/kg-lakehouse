@@ -1,5 +1,6 @@
 package at.jku.dke.bigkgolap.surface.config;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -65,12 +66,30 @@ public class QueryServiceEndpoints {
       InetAddress[] addrs = InetAddress.getAllByName(host);
       URI[] resolved = new URI[addrs.length];
       for (int i = 0; i < addrs.length; i++) {
-        resolved[i] = URI.create("http://" + addrs[i].getHostAddress() + ":" + port);
+        resolved[i] = endpointUri(addrs[i], port);
       }
       endpoints = resolved;
     } catch (UnknownHostException e) {
       // Transient DNS failure: keep the previous set rather than dropping all endpoints.
     }
     nextResolveAt = System.currentTimeMillis() + TTL_MS;
+  }
+
+  /**
+   * Builds an {@code http://host:port} endpoint URI, bracketing IPv6 literals (and stripping any
+   * scope id) so the authority stays a valid URI host. An unbracketed IPv6 address parses to a URI
+   * with a {@code null} host, which the round-robin interceptor then rewrites to a hostless {@code
+   * http:/…}. Package-private for testing.
+   */
+  static URI endpointUri(InetAddress addr, int port) {
+    String host = addr.getHostAddress();
+    if (addr instanceof Inet6Address) {
+      int scope = host.indexOf('%');
+      if (scope >= 0) {
+        host = host.substring(0, scope);
+      }
+      host = "[" + host + "]";
+    }
+    return URI.create("http://" + host + ":" + port);
   }
 }

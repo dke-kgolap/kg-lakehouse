@@ -97,6 +97,21 @@ class QueryOrchestratorTest {
                     .build());
             observer.onCompleted();
           }
+
+          @Override
+          public void inferBatch(
+              at.jku.dke.bigkgolap.grpc.InferBatchRequest req,
+              StreamObserver<InferResponse> observer) {
+            for (var c : req.getContextsList()) {
+              observer.onNext(
+                  InferResponse.newBuilder()
+                      .setContextId(c.getContextId())
+                      .addDerivedTriples("<urn:test:s> <urn:test:type> <urn:test:Super> .")
+                      .setFromCache(false)
+                      .build());
+            }
+            observer.onCompleted();
+          }
         };
     server =
         InProcessServerBuilder.forName(name)
@@ -274,6 +289,30 @@ class QueryOrchestratorTest {
   }
 
   @Test
+  void reasoningBatchedAcrossContextsStampsEveryContextsInfModule() {
+    var year = schema.locate("time", "year");
+    for (String y : List.of("2016", "2017", "2018")) {
+      var ctx = Context.of(List.of(HierarchyFactory.create(new Member(year, y), schema)), schema);
+      index.upsertContext(schema, ctx);
+    }
+    var batched = orchestratorWithBatchSize(2); // 3 contexts => 2 inference batches
+
+    ParsedQuery parsed =
+        new ParsedQuery(
+            SliceDiceContext.empty(), null, GraphRepresentation.RDF, "application/n-quads", true);
+    var data = batched.execute("atm", "test-query", parsed).data();
+
+    assertThat(data).contains("urn:test:Super"); // derived triples present
+    assertThat(data).contains("hasAssertedModule"); // base module metadata
+    assertThat(data).contains("http://dkm.fbk.eu/ckr/meta#closureOf"); // derived module metadata
+    for (String y : List.of("2016", "2017", "2018")) {
+      assertThat(data).contains(y); // every context's base emitted
+    }
+    long infModules = data.lines().filter(l -> l.contains("-inf>")).count();
+    assertThat(infModules).isGreaterThanOrEqualTo(3); // one -inf stamp per context
+  }
+
+  @Test
   void emitsNoDuplicateQuadsOnAssertedPath() {
     // Invariant guard: a query that touches a general (coarse) context AND a specific (fine)
     // context must NOT emit any quad twice. On the asserted (reasoning=false) path the output is
@@ -299,6 +338,10 @@ class QueryOrchestratorTest {
     var lines = data.lines().filter(l -> !l.isBlank()).toList();
     assertThat(lines).isNotEmpty();
     assertThat(lines).doesNotHaveDuplicates();
+
+    // Deduped count equals the number of distinct lines (hash dedup preserves exactness at unit
+    // scale).
+    assertThat(lines).hasSize(new java.util.HashSet<>(lines).size());
   }
 
   private QueryOrchestrator orchestratorWithBatchSize(int batchSize) {

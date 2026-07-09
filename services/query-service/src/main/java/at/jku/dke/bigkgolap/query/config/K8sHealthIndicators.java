@@ -39,4 +39,19 @@ public class K8sHealthIndicators {
       };
     };
   }
+
+  @Bean
+  public HealthIndicator inferenceServiceGrpcHealthIndicator(
+      @Qualifier("inferenceServiceChannel") ManagedChannel channel) {
+    return () -> {
+      // reasoning=true queries also fan out to inference-service, so readiness must cover this
+      // channel, not just graph. Same semantics as the graph indicator (nudge; treat IDLE as up).
+      ConnectivityState state = channel.getState(true);
+      Health.Builder builder = Health.status(state.name()).withDetail("state", state.name());
+      return switch (state) {
+        case READY, IDLE -> builder.up().build();
+        default -> builder.down().build();
+      };
+    };
+  }
 }

@@ -56,6 +56,75 @@ class GraphQueryServiceClientTest {
   }
 
   @Test
+  void batchStreamsEachContextsQuadsToTheSink() {
+    GraphQueryServiceClient client =
+        startWithImpl(
+            new GraphQueryServiceGrpc.GraphQueryServiceImplBase() {
+              @Override
+              public void queryGraphBatch(
+                  at.jku.dke.bigkgolap.grpc.GraphQueryBatchRequest req,
+                  StreamObserver<GraphQueryResponse> observer) {
+                for (var c : req.getContextsList()) {
+                  observer.onNext(
+                      GraphQueryResponse.newBuilder()
+                          .addQuads("<" + c.getContextId() + "> <p> <o> <g> .")
+                          .setContextId(c.getContextId())
+                          .setFromCache(true)
+                          .build());
+                }
+                observer.onCompleted();
+              }
+            });
+    var received = new java.util.ArrayList<String>();
+    var result =
+        client.queryQuadsBatch(
+            "atm",
+            List.of(
+                new GraphQueryServiceClient.ContextQuerySpec("c1", List.of("g")),
+                new GraphQueryServiceClient.ContextQuerySpec("c2", List.of("g"))),
+            GraphRepresentation.RDF,
+            received::add);
+    assertThat(received).containsExactlyInAnyOrder("<c1> <p> <o> <g> .", "<c2> <p> <o> <g> .");
+    assertThat(result.cacheHits()).isEqualTo(2);
+    assertThat(result.cacheMisses()).isZero();
+  }
+
+  @Test
+  void queryQuadsBatchGroupedCollectsLinesPerContext() {
+    GraphQueryServiceClient client =
+        startWithImpl(
+            new GraphQueryServiceGrpc.GraphQueryServiceImplBase() {
+              @Override
+              public void queryGraphBatch(
+                  at.jku.dke.bigkgolap.grpc.GraphQueryBatchRequest req,
+                  StreamObserver<GraphQueryResponse> observer) {
+                for (var c : req.getContextsList()) {
+                  observer.onNext(
+                      GraphQueryResponse.newBuilder()
+                          .addQuads("<urn:" + c.getContextId() + "> <urn:p> <urn:o> <urn:g> .")
+                          .setContextId(c.getContextId())
+                          .setFromCache(false)
+                          .build());
+                }
+                observer.onCompleted();
+              }
+            });
+
+    var res =
+        client.queryQuadsBatchGrouped(
+            "atm",
+            List.of(
+                new GraphQueryServiceClient.ContextQuerySpec("ctx-A", List.of("urn:g:A")),
+                new GraphQueryServiceClient.ContextQuerySpec("ctx-B", List.of("urn:g:B"))),
+            GraphRepresentation.RDF);
+
+    assertThat(res.linesByContext().keySet()).containsExactlyInAnyOrder("ctx-A", "ctx-B");
+    assertThat(res.linesByContext().get("ctx-A"))
+        .containsExactly("<urn:ctx-A> <urn:p> <urn:o> <urn:g> .");
+    assertThat(res.cacheMisses()).isEqualTo(2);
+  }
+
+  @Test
   void notFoundMapsToGraphNotAvailableException() {
     GraphQueryServiceClient client =
         startWithImpl(
