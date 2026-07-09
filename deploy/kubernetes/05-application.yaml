@@ -127,7 +127,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-graph-service:1.0.0
+        image: basharahmad/lakehouse-graph-service:1.0.2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -208,7 +208,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-inference-service:1.0.0
+        image: basharahmad/lakehouse-inference-service:1.0.2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -289,7 +289,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-ingestion-service:1.0.0
+        image: basharahmad/lakehouse-ingestion-service:1.0.2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -368,7 +368,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-query-service:1.0.0
+        image: basharahmad/lakehouse-query-service:1.0.2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -447,7 +447,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-surface:1.0.0
+        image: basharahmad/lakehouse-surface:1.0.2
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -557,7 +557,7 @@ spec:
         fsGroup: 1001
       containers:
       - name: web
-        image: basharahmad/lakehouse-web:1.0.0
+        image: basharahmad/lakehouse-web:1.0.2
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3001

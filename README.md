@@ -144,7 +144,7 @@ asserted content only (no native named-graph concept).
 
 ## Deployment
 
-Both deployment paths use the published release images (`basharahmad/lakehouse-*:1.0.0`); no local build is required.
+Both deployment paths use the published release images (`basharahmad/lakehouse-*:1.0.2`); no local build is required.
 
 - **Local (Docker Compose)** — the full stack on one machine. See [docs/deployment-docker.md](docs/deployment-docker.md).
 - **Kubernetes** — the example manifests under [`deploy/kubernetes`](deploy/kubernetes). See [docs/deployment-kubernetes.md](docs/deployment-kubernetes.md).

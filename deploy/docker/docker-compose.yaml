@@ -1,7 +1,7 @@
 name: lakehouse
 
 # Local, single-machine deployment of the full lakehouse stack using the
-# published release images (basharahmad/lakehouse-*:1.0.0). Bring everything up
+# published release images (basharahmad/lakehouse-*:1.0.2). Bring everything up
 # with:  docker compose up -d --wait
 #
 # Supporting configuration (cube schemas, Prometheus/Loki/Tempo/Promtail, and the
@@ -189,7 +189,7 @@ services:
   # ── Application services ──────────────────────────────────────────────────
 
   surface:
-    image: basharahmad/lakehouse-surface:1.0.0
+    image: basharahmad/lakehouse-surface:1.0.2
     container_name: lakehouse-surface
     restart: on-failure
     ports:
@@ -223,7 +223,7 @@ services:
     networks: [lakehouse-net]
 
   ingestion-service:
-    image: basharahmad/lakehouse-ingestion-service:1.0.0
+    image: basharahmad/lakehouse-ingestion-service:1.0.2
     container_name: lakehouse-ingestion-service
     restart: on-failure
     environment:
@@ -252,7 +252,7 @@ services:
     networks: [lakehouse-net]
 
   query-service:
-    image: basharahmad/lakehouse-query-service:1.0.0
+    image: basharahmad/lakehouse-query-service:1.0.2
     container_name: lakehouse-query-service
     restart: on-failure
     environment:
@@ -282,7 +282,7 @@ services:
     networks: [lakehouse-net]
 
   graph-service:
-    image: basharahmad/lakehouse-graph-service:1.0.0
+    image: basharahmad/lakehouse-graph-service:1.0.2
     container_name: lakehouse-graph-service
     restart: on-failure
     environment:
@@ -313,7 +313,7 @@ services:
     networks: [lakehouse-net]
 
   inference-service:
-    image: basharahmad/lakehouse-inference-service:1.0.0
+    image: basharahmad/lakehouse-inference-service:1.0.2
     container_name: lakehouse-inference-service
     restart: on-failure
     environment:
@@ -337,7 +337,7 @@ services:
     networks: [lakehouse-net]
 
   web:
-    image: basharahmad/lakehouse-web:1.0.0
+    image: basharahmad/lakehouse-web:1.0.2
     container_name: lakehouse-web
     restart: on-failure
     ports:
