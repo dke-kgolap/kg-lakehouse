@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use the Big KGOLAP Lakehouse in your research, please cite it as below."
+title: "Big KGOLAP Lakehouse: a cloud-native data lakehouse for contextualised knowledge graphs"
+abstract: >-
+  The Big KGOLAP Lakehouse is a cloud-native data lakehouse for contextualised
+  knowledge graphs (CKGs), applied to Aeronautical Information Management. Clients
+  upload raw aeronautical files (AIXM, IWXXM, FIXM); the system extracts
+  multidimensional context hierarchies (time, location, topic) into an index and
+  reconstructs contextualised knowledge graphs on demand (the KG-OLAP cube) per
+  context, returning the result as RDF, a labeled property graph, or a Spark
+  GraphFrame.
+type: software
+authors:
+  - given-names: Bashar
+    family-names: Ahmad
+    affiliation: "Institute of Business Informatics - Data & Knowledge Engineering, Johannes Kepler University Linz, Austria"
+    orcid: "https://orcid.org/0000-0001-9610-1516"
+  - given-names: "Christoph G."
+    family-names: Schuetz
+    affiliation: "Institute of Business Informatics - Data & Knowledge Engineering, Johannes Kepler University Linz, Austria"
+    orcid: "https://orcid.org/0000-0002-0955-8647"
+  - given-names: Loris
+    family-names: Bozzato
+    affiliation: "Dipartimento di Scienze Teoriche e Applicate, Università degli Studi dell'Insubria, Varese, Italy"
+    orcid: "https://orcid.org/0000-0003-1757-9859"
+version: "1.0.2"
+date-released: "2026-07-09"
+license: BSD-3-Clause
+repository-code: "https://github.com/dke-kgolap/big-kgolap-lakehouse"
+url: "https://github.com/dke-kgolap/big-kgolap-lakehouse"
+keywords:
+  - knowledge graphs
+  - contextualised knowledge graphs
+  - data lakehouse
+  - KG-OLAP
+  - OLAP
+  - aeronautical information management
+  - RDF
+  - reproducibility
+# After the first Zenodo deposit, record the concept DOI (all versions) here:
+# identifiers:
+#   - type: doi
+#     value: 10.5281/zenodo.XXXXXXX
+#     description: "Concept DOI — resolves to the latest version"
