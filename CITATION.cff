@@ -1,8 +1,8 @@
 cff-version: 1.2.0
-message: "If you use the Big KGOLAP Lakehouse in your research, please cite it as below."
-title: "Big KGOLAP Lakehouse: a cloud-native data lakehouse for contextualised knowledge graphs"
+message: "If you use the Knowledge Graph Lakehouse in your research, please cite it as below."
+title: "Knowledge Graph Lakehouse: a cloud-native data lakehouse for contextualised knowledge graphs"
 abstract: >-
-  The Big KGOLAP Lakehouse is a cloud-native data lakehouse for contextualised
+  The Knowledge Graph Lakehouse is a cloud-native data lakehouse for contextualised
   knowledge graphs (CKGs), applied to Aeronautical Information Management. Clients
   upload raw aeronautical files (AIXM, IWXXM, FIXM); the system extracts
   multidimensional context hierarchies (time, location, topic) into an index and
@@ -26,8 +26,8 @@ authors:
 version: "1.0.2"
 date-released: "2026-07-09"
 license: BSD-3-Clause
-repository-code: "https://github.com/dke-kgolap/big-kgolap-lakehouse"
-url: "https://github.com/dke-kgolap/big-kgolap-lakehouse"
+repository-code: "https://github.com/dke-kgolap/kg-lakehouse"
+url: "https://github.com/dke-kgolap/kg-lakehouse"
 keywords:
   - knowledge graphs
   - contextualised knowledge graphs

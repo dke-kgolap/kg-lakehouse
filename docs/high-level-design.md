@@ -1,6 +1,6 @@
-# Big KGOLAP Lakehouse - High-Level Design Document
+# Knowledge Graph Lakehouse - High-Level Design Document
 
-**Project:** big-kgolap-lakehouse
+**Project:** kg-lakehouse
 **Authors:** Bashar Ahmad
 **Affiliation:** Institute of Business Informatics - Data & Knowledge Engineering, Johannes Kepler University Linz
 **Version:** 2.1
@@ -13,11 +13,11 @@
 
 ### 1.1 Purpose
 
-This document describes the high-level architecture of the Big KGOLAP Lakehouse, a cloud-native data lakehouse for managing contextualized knowledge graphs (CKGs). The system ingests heterogeneous data streams, performs semantic and contextual indexing, and constructs task-specific CKGs on demand as KG-OLAP cubes.
+This document describes the high-level architecture of the Knowledge Graph Lakehouse, a cloud-native data lakehouse for managing contextualized knowledge graphs (CKGs). The system ingests heterogeneous data streams, performs semantic and contextual indexing, and constructs task-specific CKGs on demand as KG-OLAP cubes.
 
 ### 1.2 Background
 
-The Big KGOLAP Lakehouse was first described in the SIDs 2025 paper *"A Cloud-Native Lakehouse Architecture for Using Knowledge Graphs in Aeronautical Information Management"* (Ahmad & Schuetz, 2025). The initial proof-of-concept was implemented in Java 11 / Spring Boot 2.5.6 and validated with an air traffic management (ATM) use case.
+The Knowledge Graph Lakehouse was first described in the SIDs 2025 paper *"A Cloud-Native Lakehouse Architecture for Using Knowledge Graphs in Aeronautical Information Management"* (Ahmad & Schuetz, 2025). The initial proof-of-concept was implemented in Java 11 / Spring Boot 2.5.6 and validated with an air traffic management (ATM) use case.
 
 This document describes version 2.0 — a ground-up reimplementation that makes the system **domain-agnostic**, supports **multiple graph representations**, provides **research-grade observability**, enables **automated experimentation**, and adds **optional rule-based inference**.
 

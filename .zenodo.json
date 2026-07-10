@@ -1,7 +1,7 @@
 {
   "upload_type": "software",
-  "title": "Big KGOLAP Lakehouse: a cloud-native data lakehouse for contextualised knowledge graphs",
-  "description": "The Big KGOLAP Lakehouse is a cloud-native data lakehouse for contextualised knowledge graphs (CKGs), applied to Aeronautical Information Management. Clients upload raw aeronautical files (AIXM, IWXXM, FIXM); the system extracts multidimensional context hierarchies (time, location, topic) into an index and reconstructs contextualised knowledge graphs on demand (the KG-OLAP cube) per context, returning the result as RDF, a labeled property graph, or a Spark GraphFrame.",
+  "title": "Knowledge Graph Lakehouse: a cloud-native data lakehouse for contextualised knowledge graphs",
+  "description": "The Knowledge Graph Lakehouse is a cloud-native data lakehouse for contextualised knowledge graphs (CKGs), applied to Aeronautical Information Management. Clients upload raw aeronautical files (AIXM, IWXXM, FIXM); the system extracts multidimensional context hierarchies (time, location, topic) into an index and reconstructs contextualised knowledge graphs on demand (the KG-OLAP cube) per context, returning the result as RDF, a labeled property graph, or a Spark GraphFrame.",
   "creators": [
     { "name": "Ahmad, Bashar", "affiliation": "Institute of Business Informatics - Data & Knowledge Engineering, Johannes Kepler University Linz, Austria", "orcid": "0000-0001-9610-1516" },
     { "name": "Schuetz, Christoph G.", "affiliation": "Institute of Business Informatics - Data & Knowledge Engineering, Johannes Kepler University Linz, Austria", "orcid": "0000-0002-0955-8647" },

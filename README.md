@@ -1,4 +1,4 @@
-# Big KGOLAP - Lakehouse
+# Knowledge Graph Lakehouse
 
 A cloud-native data lakehouse for **contextualised knowledge graphs (CKGs)**. Clients upload raw files (e.g AIXM, IWXXM, FIXM); the system extracts multidimensional context hierarchies into an index, then reconstructs CKGs on demand by re-running mappers per context, applying merge and rollup, and returning the result as RDF, a labelled property graph (LPG), or a Spark GraphFrame.
 
