@@ -1,5 +1,7 @@
 # Knowledge Graph Lakehouse
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21289343.svg)](https://doi.org/10.5281/zenodo.21289343)
+
 A cloud-native data lakehouse for **contextualised knowledge graphs (CKGs)**. Clients upload raw files (e.g AIXM, IWXXM, FIXM); the system extracts multidimensional context hierarchies into an index, then reconstructs CKGs on demand by re-running mappers per context, applying merge and rollup, and returning the result as RDF, a labelled property graph (LPG), or a Spark GraphFrame.
 
 | Property | Value |

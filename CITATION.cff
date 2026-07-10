@@ -37,8 +37,7 @@ keywords:
   - aeronautical information management
   - RDF
   - reproducibility
-# After the first Zenodo deposit, record the concept DOI (all versions) here:
-# identifiers:
-#   - type: doi
-#     value: 10.5281/zenodo.XXXXXXX
-#     description: "Concept DOI — resolves to the latest version"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21289343
+    description: "Concept DOI — resolves to the latest version"
