@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21289343.svg)](https://doi.org/10.5281/zenodo.21289343)
 
-A cloud-native data lakehouse for **contextualised knowledge graphs (CKGs)**. Clients upload raw files (e.g AIXM, IWXXM, FIXM); the system extracts multidimensional context hierarchies into an index, then reconstructs CKGs on demand by re-running mappers per context, applying merge and rollup, and returning the result as RDF, a labelled property graph (LPG), or a Spark GraphFrame.
+A cloud-native data lakehouse for **contextualized knowledge graphs (CKGs)**. Clients upload raw files (e.g., AIXM, IWXXM, FIXM); the system extracts multidimensional context hierarchies into an index, then reconstructs CKGs on demand by re-running mappers per context, applying merge and rollup, and returning the result as RDF, a labeled property graph (LPG), or a Spark GraphFrame.
 
 | Property | Value |
 | --- | --- |
@@ -50,7 +50,7 @@ graph LR
 
 ### Frontend
 
-A **web console** (Next.js) offers a browser interface over the `surface` gateway. It queries the knowledge graph and visualises the result as a graph, table, OLAP cube, or raw data; browses schemas; ingests source files; reviews query history; and monitors service health. It is a standalone service that calls only `surface` and passes through its authentication.
+A **web console** (Next.js) offers a browser interface over the `surface` gateway. It queries the knowledge graph and visualizes the result as a graph, table, OLAP cube, or raw data; browses schemas; ingests source files; reviews query history; and monitors service health. It is a standalone service that calls only `surface` and passes through its authentication.
 
 Because the frontend uses only the public `surface` API, it is optional and replaceable. You can run the bundled console as-is, extend it, or build your own interface — a custom dashboard, a notebook integration, or a domain-specific viewer — against the same API.
 
@@ -102,8 +102,9 @@ Key design choices:
 
 ## Asserted and derived knowledge
 
-Like the reference KG-OLAP implementation, each context cell carries two kinds of knowledge,
-expressed as named graphs (RDF "modules"):
+Like the reference implementation of KG-OLAP (Schuetz et al., *Knowledge Graph OLAP*, Semantic Web
+12(4), 2021), each context cell carries two kinds of knowledge, expressed as named graphs (RDF
+"modules"):
 
 - **Asserted** — the base facts the engine `Mapper` transcribes from the raw file, in the context's
   `…-mod` module (`ckr:hasAssertedModule`).
@@ -116,8 +117,8 @@ never reason. Derived knowledge is produced by a dedicated, optional **`inferenc
 `reasoning=on` (query param, default off) and `query-service` sends each context's base graph to it,
 then stamps the returned triples into the `…-inf` module (plus `olap:covers` coverage on rollup).
 The inference-service is stateless (base graph in → derived out) and caches derived triples per
-`(context, ruleset)`; the rule backend is pluggable (`InferenceEngine`, Jena RDFS/OWL today — **not**
-RDFpro, which the original used).
+`(context, ruleset)`; the rule backend is pluggable (`InferenceEngine`, Jena RDFS/OWL today —
+unlike the KG-OLAP reference implementation, which used RDFpro).
 
 The schema-level axioms (the terminological box, or TBox) are assembled from two sources merged into one reasoner model:
 
@@ -137,7 +138,7 @@ asserted content only (no native named-graph concept).
 
 | Document | Contents |
 | --- | --- |
-| [docs/high-level-design.md](docs/high-level-design.md) | Goals, system context, component responsibilities, metric catalogue, sequence diagrams. Start here. |
+| [docs/high-level-design.md](docs/high-level-design.md) | Goals, system context, component responsibilities, metric catalog, sequence diagrams. Start here. |
 | [docs/deployment-docker.md](docs/deployment-docker.md) | Run the full stack locally with Docker Compose. |
 | [docs/deployment-kubernetes.md](docs/deployment-kubernetes.md) | Deploy to a Kubernetes cluster with the example manifests. |
 | [docs/building-from-source.md](docs/building-from-source.md) | Build the JARs, the web console, and (optionally) your own container images. |
@@ -199,7 +200,7 @@ Once the stack is running, the web console is at <http://localhost:3001> and Gra
 └── pom.xml                   # Root Maven POM
 ```
 
-The E1–E5 experiment suite is maintained in a separate repository (link to be added).
+The E1–E5 evaluation suite — reproduction scripts, analysis notebooks, and the measured result evidence — is maintained in a separate repository: [kg-lakehouse-evaluation](https://github.com/dke-kgolap/kg-lakehouse-evaluation) (archived at [doi:10.5281/zenodo.21395266](https://doi.org/10.5281/zenodo.21395266)).
 
 ---
 
@@ -240,8 +241,13 @@ Conventions:
 
 ## License and citation
 
-If you use this work, please cite:
+If you use this work, please cite the archived artifact:
 
-> ...
-> 
-This repository is released under the BSD 3-Clause Licence; see the [LICENSE](LICENSE) file for the full text.
+> Ahmad, B., Schuetz, C. G., and Bozzato, L. *Knowledge Graph Lakehouse: a cloud-native data
+> lakehouse for contextualized knowledge graphs.* Version 1.0.4, Zenodo, 2026.
+> [doi:10.5281/zenodo.21289343](https://doi.org/10.5281/zenodo.21289343)
+
+A [`CITATION.cff`](CITATION.cff) file is included for citation managers. The accompanying journal
+article is under review; its citation will be added here upon publication.
+
+This repository is released under the BSD 3-Clause License; see the [LICENSE](LICENSE) file for the full text.
