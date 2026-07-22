@@ -24,7 +24,15 @@ public interface IndexRepository {
 
   Set<Context> getSpecificContexts(CubeSchema schema, SliceDiceContext sliceDice);
 
-  Set<String> getGeneralContextIds(CubeSchema schema, SliceDiceContext sliceDice);
+  /**
+   * Stored contexts whose knowledge propagates into the scope without being part of it: comparable
+   * with the scope coordinate in every dimension (an unconstrained dimension reads as the all
+   * level) and strictly coarser in at least one. This covers both contexts above the scope on every
+   * dimension (the classic general contexts) and mixed-granularity contexts that are finer than the
+   * scope in one dimension and coarser in another (KG-OLAP Definition 4); which cells each one
+   * covers is decided per context by the caller.
+   */
+  Set<Context> getCoveringContexts(CubeSchema schema, SliceDiceContext sliceDice);
 
   List<LakehouseFile> getFilesForContext(String schemaId, String contextHash);
 

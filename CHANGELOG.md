@@ -4,6 +4,37 @@ All notable changes to this project are recorded here. Versions follow
 [Semantic Versioning](https://semver.org/): patch releases carry bug fixes and
 internal improvements with no change to external APIs.
 
+## [1.0.4] — 2026-07-21
+
+### Fixed
+- **Query-service readiness no longer flaps during long constructions.** The gRPC clients ping
+  their channels every 60 seconds, but the graph- and inference-service servers kept Netty's
+  five-minute keepalive permission, so each ping burst drew a `too_many_pings` GOAWAY. Every
+  GOAWAY flipped the channel-gated Kubernetes readiness of the query service, which removed its
+  headless-service DNS record — the gateway then answered with HTTP 500 until the channel
+  recovered. The servers now explicitly permit the clients' cadence, and the query service waits
+  for its gRPC targets' DNS before starting, so a simultaneous deployment start cannot leave the
+  channels stuck.
+
+## [1.0.3] — 2026-07-21
+
+### Fixed
+- **Queries now deliver the knowledge of covering contexts to exactly the cells they cover.** The
+  index resolution previously recognized only contexts coarser than the scope in every constrained
+  dimension. A context finer than the scope in one dimension and coarser in another — a NOTAM filed
+  for a flight information region on a single day, queried with an airport-month scope — was dropped
+  from the answer entirely, while a context with concrete values in unconstrained dimensions was
+  attached to every result cell. The new covering-context resolution accepts every stored context
+  comparable with the scope in all dimensions and strictly coarser in at least one, and the query
+  service attaches each covering module to the final cells of exactly the source cells it covers —
+  the per-cell knowledge propagation of the CKR model. Verified by unit and integration tests and by
+  the evaluation's correctness battery, which gained a covering-delivery law for this property.
+- **Container images always package the jar of the current version.** The Dockerfiles referenced a
+  hardcoded `target/<service>-1.0.0.jar`, so an image rebuilt after a version bump silently
+  packaged the stale jar. Images now copy the single jar produced by a clean build, and a lingering
+  stale jar fails the build loudly. (The published 1.0.2 images were audited and contain the
+  correct release source; the hazard affected rebuilds only.)
+
 ## [1.0.2] — 2026-07-06
 
 ### Fixed

@@ -95,11 +95,11 @@ public class InMemoryIndexRepository implements IndexRepository {
   }
 
   @Override
-  public Set<String> getGeneralContextIds(CubeSchema schema, SliceDiceContext sliceDice) {
-    var result = new HashSet<String>();
+  public Set<Context> getCoveringContexts(CubeSchema schema, SliceDiceContext sliceDice) {
+    var result = new HashSet<Context>();
     for (var e : storedContexts.entrySet()) {
       if (!e.getKey().getKey().equals(schema.id())) continue;
-      if (generalMatches(e.getValue(), sliceDice)) result.add(e.getValue().id());
+      if (coveringMatches(e.getValue(), sliceDice)) result.add(e.getValue());
     }
     return result;
   }
@@ -118,19 +118,27 @@ public class InMemoryIndexRepository implements IndexRepository {
     return true;
   }
 
-  private boolean generalMatches(Context stored, SliceDiceContext sliceDice) {
+  /**
+   * A stored context covers into the scope iff it is comparable with the scope coordinate on every
+   * constrained dimension (one hierarchy a prefix of the other) and strictly coarser on at least
+   * one. Unconstrained dimensions read as the all level: any stored hierarchy is finer than or
+   * equal to them, so they can neither break comparability nor contribute coarseness.
+   */
+  private boolean coveringMatches(Context stored, SliceDiceContext sliceDice) {
     if (sliceDice.isEmpty()) return false;
+    boolean anyCoarser = false;
     for (var e : sliceDice.hierarchies().entrySet()) {
       String dim = e.getKey();
       Hierarchy queryHierarchy = e.getValue();
       Hierarchy storedHierarchy = stored.getHierarchy(dim);
       if (storedHierarchy == null) return false;
-      if (storedHierarchy.members().size() >= queryHierarchy.members().size()) return false;
-      for (int i = 0; i < storedHierarchy.members().size(); i++) {
+      int shared = Math.min(storedHierarchy.members().size(), queryHierarchy.members().size());
+      for (int i = 0; i < shared; i++) {
         if (!storedHierarchy.members().get(i).equals(queryHierarchy.members().get(i))) return false;
       }
+      if (storedHierarchy.members().size() < queryHierarchy.members().size()) anyCoarser = true;
     }
-    return true;
+    return anyCoarser;
   }
 
   @Override

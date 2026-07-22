@@ -136,18 +136,48 @@ class CassandraIndexRepositoryIT extends CassandraTestBase {
   // ------------------------------------------------------------------
 
   @Test
-  void getGeneralContextIdsWalksUpRollupChainsAndExcludesTheSliceDiceItself() {
+  void getCoveringContextsWalksUpRollupChainsAndExcludesTheSliceDiceItself() {
     seedAll();
     var sd =
         SliceDiceContext.of(List.of(timeAt("day", "2025-01-15"), locAt("location", "LOWW")), atm);
-    var general = repo.getGeneralContextIds(atm, sd);
-    Assertions.assertThat(general).containsExactlyInAnyOrder(c4.id(), c5.id());
+    var covering = repo.getCoveringContexts(atm, sd);
+    Assertions.assertThat(covering).containsExactlyInAnyOrder(c4, c5);
   }
 
   @Test
-  void getGeneralContextIdsReturnsEmptyForAnEmptySliceDice() {
+  void getCoveringContextsReturnsEmptyForAnEmptySliceDice() {
     seedAll();
-    Assertions.assertThat(repo.getGeneralContextIds(atm, SliceDiceContext.empty())).isEmpty();
+    Assertions.assertThat(repo.getCoveringContexts(atm, SliceDiceContext.empty())).isEmpty();
+  }
+
+  /**
+   * A stored context can be finer than the scope in one dimension and coarser in another (e.g., a
+   * SIGMET indexed at (day, FIR) against a scope of (month, airport)). Such a context covers cells
+   * inside the scope — (day, LOWW) rolls up to (day, LOVV) — so by KG-OLAP Definition 4 and the
+   * propagation condition (Definition 3 (vi)) its knowledge belongs in the answer. The covering
+   * resolution must therefore surface it.
+   */
+  @Test
+  void mixedGranularityContextCoveringInScopeCellsIsResolved() {
+    var inScope =
+        ctx(
+            timeAt("day", "2025-01-15"),
+            locAt("location", "LOWW"),
+            topicAt("feature", "ApronElement"));
+    var mixed = ctx(timeAt("day", "2025-01-15"), locAt("fir", "LOVV"), topicAt("family", "Apron"));
+    repo.upsertContext(atm, inScope);
+    repo.upsertContext(atm, mixed);
+
+    var scope =
+        SliceDiceContext.of(List.of(timeAt("month", "2025-01"), locAt("location", "LOWW")), atm);
+
+    Assertions.assertThat(repo.getCoveringContexts(atm, scope))
+        .as("mixed-granularity context covering in-scope cells must be visible to the query")
+        .contains(mixed);
+    Assertions.assertThat(repo.getSpecificContexts(atm, scope))
+        .as("the mixed context must not double as a specific context")
+        .doesNotContain(mixed)
+        .contains(inScope);
   }
 
   // ------------------------------------------------------------------

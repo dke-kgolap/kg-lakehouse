@@ -26,6 +26,10 @@ public class GrpcConfig {
             .maxInboundMessageSize(MAX_INBOUND_MESSAGE_BYTES)
             .keepAliveTime(5, TimeUnit.MINUTES)
             .keepAliveTimeout(10, TimeUnit.SECONDS)
+            // permit the clients' 60s keepalive cadence: without this, Netty's 5-minute
+            // default treats their pings as too_many_pings and GOAWAYs the channel, which
+            // flips the clients' channel-gated readiness and drops their headless DNS
+            .permitKeepAliveTime(30, TimeUnit.SECONDS)
             .permitKeepAliveWithoutCalls(true)
             .addService(impl);
     serverInterceptor.ifAvailable(builder::intercept);

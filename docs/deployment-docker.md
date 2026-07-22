@@ -15,7 +15,7 @@ to try the system end to end; for a cluster deployment see
 | Memory | About 8 GB free is comfortable for the full stack |
 | Free TCP ports | 8080, 3000, 3001, 9000, 9001, 9042, 9092, 9094, 9099, 3100, 3200, 4317, 4318 |
 
-The images are pulled from Docker Hub (`basharahmad/lakehouse-*:1.0.2`); no local
+The images are pulled from Docker Hub (`basharahmad/lakehouse-*:1.0.4`); no local
 build is required.
 
 ## Start the stack

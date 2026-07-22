@@ -21,8 +21,8 @@ public class ContextResolverService {
     return index.getSpecificContexts(schema, sliceDice);
   }
 
-  public Set<String> resolveGeneralIds(CubeSchema schema, SliceDiceContext sliceDice) {
-    return index.getGeneralContextIds(schema, sliceDice);
+  public Set<Context> resolveCovering(CubeSchema schema, SliceDiceContext sliceDice) {
+    return index.getCoveringContexts(schema, sliceDice);
   }
 
   /**

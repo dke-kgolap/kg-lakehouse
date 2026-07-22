@@ -8,7 +8,7 @@
     { "name": "Bozzato, Loris", "affiliation": "Dipartimento di Scienze Teoriche e Applicate, Università degli Studi dell'Insubria, Varese, Italy", "orcid": "0000-0003-1757-9859" }
   ],
   "license": "BSD-3-Clause",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "access_right": "open",
   "keywords": [
     "knowledge graphs",

@@ -199,38 +199,73 @@ public class CassandraIndexRepository implements IndexRepository {
     return result;
   }
 
+  /** A per-dimension candidate for covering resolution, tagged with its direction vs. the scope. */
+  private record TaggedHierarchy(StoredHierarchy stored, boolean strictlyCoarser) {}
+
   @Override
-  public Set<String> getGeneralContextIds(CubeSchema schema, SliceDiceContext sliceDice) {
-    if (sliceDice.hierarchies().isEmpty()) return Collections.emptySet();
-    var perDimension = new ArrayList<List<StoredHierarchy>>();
-    for (var dimEntry : sliceDice.hierarchies().entrySet()) {
-      String dimName = dimEntry.getKey();
-      Hierarchy leaf = dimEntry.getValue();
-      Dimension dim = schema.dimensions().get(dimName);
-      if (dim == null) {
-        throw new IndexCorruptionException(
-            "Slice/dice references unknown dimension '" + dimName + "'");
+  public Set<Context> getCoveringContexts(CubeSchema schema, SliceDiceContext sliceDice) {
+    var perDimension = new ArrayList<List<TaggedHierarchy>>();
+    for (var dim : schema.dimensions().values()) {
+      Hierarchy constraint = sliceDice.getHierarchy(dim.name());
+      if (constraint == null) {
+        constraint = Hierarchy.all(dim.name());
       }
+      var chain = generalChain(constraint, schema);
       var partition = readPartition(schema.id(), dim);
-      var rollups = generalChain(leaf, schema);
-      var candidates = new ArrayList<StoredHierarchy>();
-      // collect all partition entries that exactly match any ancestor; deduplicate by hierarchy id
-      var seenIds = new HashSet<String>();
-      for (var ancestor : rollups) {
-        for (var sh : partition) {
-          if (matchesExactly(sh.hierarchy(), ancestor) && seenIds.add(sh.hierarchy().id())) {
-            candidates.add(sh);
-          }
+      var candidates = new ArrayList<TaggedHierarchy>();
+      for (var sh : partition) {
+        if (matches(sh.hierarchy(), constraint)) {
+          // finer than or equal to the scope on this dimension
+          candidates.add(new TaggedHierarchy(sh, false));
+        } else if (onChain(sh.hierarchy(), chain)) {
+          // strictly coarser: an ancestor of the scope coordinate on this dimension
+          candidates.add(new TaggedHierarchy(sh, true));
         }
+        // otherwise incomparable with the scope on this dimension — not a covering candidate
       }
       perDimension.add(candidates);
     }
-    var result = new HashSet<String>();
+    var result = new HashSet<Context>();
     for (var tuple : CartesianProduct.of(perDimension)) {
-      if (tupleEqualsSliceDice(tuple, sliceDice)) continue;
-      result.addAll(intersectContextIds(tuple));
+      boolean anyCoarser = false;
+      for (var th : tuple) {
+        if (th.strictlyCoarser()) {
+          anyCoarser = true;
+          break;
+        }
+      }
+      // tuples with no strictly-coarser dimension are the specific contexts (or the scope itself)
+      if (!anyCoarser) continue;
+      var shTuple = new ArrayList<StoredHierarchy>(tuple.size());
+      for (var th : tuple) shTuple.add(th.stored());
+      var intersected = intersectContextIds(shTuple);
+      if (intersected.size() == 0) {
+        // no match — skip
+      } else if (intersected.size() == 1) {
+        var hierarchies = new ArrayList<Hierarchy>();
+        for (var th : tuple) hierarchies.add(th.stored().hierarchy());
+        result.add(Context.of(hierarchies, schema));
+      } else {
+        var hierarchyList = new ArrayList<Hierarchy>();
+        for (var th : tuple) hierarchyList.add(th.stored().hierarchy());
+        throw new IndexCorruptionException(
+            "Multiple context ids ("
+                + intersected
+                + ") share the complete hierarchy tuple "
+                + hierarchyList
+                + " in schema '"
+                + schema.id()
+                + "'");
+      }
     }
     return result;
+  }
+
+  private boolean onChain(Hierarchy stored, List<Hierarchy> chain) {
+    for (var ancestor : chain) {
+      if (matchesExactly(stored, ancestor)) return true;
+    }
+    return false;
   }
 
   @Override
@@ -370,16 +405,6 @@ public class CassandraIndexRepository implements IndexRepository {
       if (intersect.isEmpty()) return Collections.emptySet();
     }
     return intersect;
-  }
-
-  private boolean tupleEqualsSliceDice(List<StoredHierarchy> tuple, SliceDiceContext sliceDice) {
-    if (tuple.size() != sliceDice.hierarchies().size()) return false;
-    for (var sh : tuple) {
-      Hierarchy expected = sliceDice.getHierarchy(sh.hierarchy().dimension());
-      if (expected == null) return false;
-      if (!sh.hierarchy().equals(expected)) return false;
-    }
-    return true;
   }
 
   private long singleCount(BoundStatement stmt) {

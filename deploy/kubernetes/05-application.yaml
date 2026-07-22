@@ -127,7 +127,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-graph-service:1.0.2
+        image: basharahmad/lakehouse-graph-service:1.0.4
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -208,7 +208,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-inference-service:1.0.2
+        image: basharahmad/lakehouse-inference-service:1.0.4
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -289,7 +289,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-ingestion-service:1.0.2
+        image: basharahmad/lakehouse-ingestion-service:1.0.4
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -368,7 +368,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-query-service:1.0.2
+        image: basharahmad/lakehouse-query-service:1.0.4
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -404,6 +404,33 @@ spec:
         - mountPath: /app/config/schemas
           name: schemas
           readOnly: true
+      # The gRPC targets are headless services whose DNS resolves only once their
+      # pods are ready. Dialing them before that can leave the channels (and the
+      # channel-gated readiness) stuck after a simultaneous start - wait until
+      # both are resolvable.
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - for i in $(seq 1 100); do nc -z -w2 graph-service 9090 && exit 0; sleep 3; done
+        image: busybox:1.36
+        name: wait-for-graph
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      - command:
+        - sh
+        - -c
+        - for i in $(seq 1 100); do nc -z -w2 inference-service 9091 && exit 0; sleep 3; done
+        image: busybox:1.36
+        name: wait-for-inference
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
       securityContext:
         fsGroup: 1000
         runAsGroup: 1000
@@ -447,7 +474,7 @@ spec:
         - secretRef:
             name: lakehouse-secrets
             optional: false
-        image: basharahmad/lakehouse-surface:1.0.2
+        image: basharahmad/lakehouse-surface:1.0.4
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -557,7 +584,7 @@ spec:
         fsGroup: 1001
       containers:
       - name: web
-        image: basharahmad/lakehouse-web:1.0.2
+        image: basharahmad/lakehouse-web:1.0.4
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3001

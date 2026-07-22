@@ -1,7 +1,7 @@
 # Building from source
 
 The deployment guides use the published container images
-(`basharahmad/lakehouse-*:1.0.2`), so **you do not need to build anything to run
+(`basharahmad/lakehouse-*:1.0.4`), so **you do not need to build anything to run
 the system**. This document is for readers who want to build the artifacts
 themselves — the service JAR files, the web console, and, if they wish, their own
 container images.
@@ -27,11 +27,11 @@ This compiles every module, runs the unit tests, and writes one self-contained
 (runnable) JAR per service:
 
 ```
-services/surface/target/surface-1.0.2.jar
-services/ingestion-service/target/ingestion-service-1.0.2.jar
-services/query-service/target/query-service-1.0.2.jar
-services/graph-service/target/graph-service-1.0.2.jar
-services/inference-service/target/inference-service-1.0.2.jar
+services/surface/target/surface-1.0.4.jar
+services/ingestion-service/target/ingestion-service-1.0.4.jar
+services/query-service/target/query-service-1.0.4.jar
+services/graph-service/target/graph-service-1.0.4.jar
+services/inference-service/target/inference-service-1.0.4.jar
 ```
 
 Useful variants:

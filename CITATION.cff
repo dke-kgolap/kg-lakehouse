@@ -23,8 +23,8 @@ authors:
     family-names: Bozzato
     affiliation: "Dipartimento di Scienze Teoriche e Applicate, Università degli Studi dell'Insubria, Varese, Italy"
     orcid: "https://orcid.org/0000-0003-1757-9859"
-version: "1.0.2"
-date-released: "2026-07-09"
+version: "1.0.4"
+date-released: "2026-07-21"
 license: BSD-3-Clause
 repository-code: "https://github.com/dke-kgolap/kg-lakehouse"
 url: "https://github.com/dke-kgolap/kg-lakehouse"

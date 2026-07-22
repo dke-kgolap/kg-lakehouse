@@ -38,7 +38,7 @@ class ContextResolverServiceTest {
   }
 
   @Test
-  void generalResolutionMatchesStoredCoarserContexts() {
+  void coveringResolutionMatchesStoredCoarserContexts() {
     var year = schema.locate("time", "year");
     var month = schema.locate("time", "month");
     var coarse = Context.of(List.of(Hierarchy.of(new Member(year, "2018"))), schema);
@@ -47,7 +47,7 @@ class ContextResolverServiceTest {
     var sliceDice =
         SliceDiceContext.of(
             List.of(HierarchyFactory.create(new Member(month, "2018-02"), schema)), schema);
-    var general = resolver.resolveGeneralIds(schema, sliceDice);
-    assertThat(general).containsExactly(coarse.id());
+    var covering = resolver.resolveCovering(schema, sliceDice);
+    assertThat(covering).containsExactly(coarse);
   }
 }

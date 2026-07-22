@@ -2,7 +2,7 @@
 
 This guide deploys the lakehouse to a Kubernetes cluster using the example
 manifests under [`deploy/kubernetes`](../deploy/kubernetes) and the published
-release images (`basharahmad/lakehouse-*:1.0.2`). The manifests are a clean,
+release images (`basharahmad/lakehouse-*:1.0.4`). The manifests are a clean,
 self-contained starting point: one namespace, the supporting infrastructure, the
 five backend services, the web console, and an optional observability stack. Adapt
 the resource requests, replica counts, and storage to your cluster before any

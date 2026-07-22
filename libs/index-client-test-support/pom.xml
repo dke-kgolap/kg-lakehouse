@@ -8,7 +8,7 @@
   <parent>
     <groupId>at.jku.dke.bigkgolap</groupId>
     <artifactId>libs</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.4</version>
   </parent>
 
   <artifactId>index-client-test-support</artifactId>
@@ -21,6 +21,17 @@
     <dependency>
       <groupId>at.jku.dke.bigkgolap</groupId>
       <artifactId>domain-model</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

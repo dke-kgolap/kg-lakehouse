@@ -16,6 +16,7 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.tracing.Tracer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,7 +136,7 @@ public class QueryOrchestrator {
 
     long resolveStart = System.nanoTime();
     var specific = resolver.resolveSpecific(schema, parsed.sliceDice());
-    var generalIds = resolver.resolveGeneralIds(schema, parsed.sliceDice());
+    var covering = resolver.resolveCovering(schema, parsed.sliceDice());
     long resolveNanos = System.nanoTime() - resolveStart;
     resolveTimer.record(resolveNanos, TimeUnit.NANOSECONDS);
 
@@ -145,11 +146,22 @@ public class QueryOrchestrator {
             ? parsed.mergeLevels()
             : null;
     var mp = merger.mergeAndPropagate(schema, specific, activeMerge);
-    var knowledgeMap =
-        new HashMap<String, Set<Context>>(mp.contextMap().size() + generalIds.size());
+    var knowledgeMap = new HashMap<String, Set<Context>>(mp.contextMap().size() + covering.size());
     knowledgeMap.putAll(mp.contextMap());
-    for (String gid : generalIds) {
-      knowledgeMap.put(gid, mp.finalContexts());
+    // CKR propagation (Definition 3 (vi)): a covering context's module belongs to every cell it
+    // covers, so it is attached to the final graphs of exactly the source cells it covers. A
+    // context above the whole scope reaches every final; a mixed-granularity context (finer than
+    // the scope in one dimension, coarser in another) reaches only the finals of its descendants.
+    for (Context cov : covering) {
+      var attach = new HashSet<Context>();
+      for (Context source : specific) {
+        if (source.rollsUpTo(cov, schema)) {
+          attach.addAll(mp.contextMap().get(source.id()));
+        }
+      }
+      if (!attach.isEmpty()) {
+        knowledgeMap.put(cov.id(), attach);
+      }
     }
     long mergeNanos = System.nanoTime() - mergeStart;
     mergeTimer.record(mergeNanos, TimeUnit.NANOSECONDS);

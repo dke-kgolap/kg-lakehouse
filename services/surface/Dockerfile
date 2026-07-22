@@ -1,6 +1,6 @@
 FROM eclipse-temurin:21-jre-alpine AS builder
 WORKDIR /app
-ARG JAR_FILE=target/surface-1.0.0.jar
+ARG JAR_FILE=target/*.jar
 COPY ${JAR_FILE} app.jar
 RUN java -Djarmode=layertools -jar app.jar extract
 
